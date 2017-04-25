@@ -1,0 +1,11 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/GazeDataViewer/bin
+/GazeDataViewer/obj
+/GazeDataViewer/Properties
+/GazeDataViewer/FodyWeavers.xml
+/GazeDataViewer/packages.config
+/packages
+/.vs/GazeDataViewer/v14/.suo

@@ -59,7 +59,7 @@ namespace GazeDataViewer.Classes
             distancePerFrame.Add(new SeriesItem(currentTimePoint, 0));
             pupilSizeLeft.Add(new SeriesItem(currentTimePoint, sortedData[0].SizeX));
             pupilSizeRight.Add(new SeriesItem(currentTimePoint, sortedData[0].SizeY));
-
+          
             while (currentPointEnd < sortedData.Count())
             {
                 var distanceAb = calculationHelper.CountEuclideanDistance(sortedData[currentPointStart], sortedData[currentPointEnd]);
