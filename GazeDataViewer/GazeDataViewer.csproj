@@ -91,6 +91,11 @@
     <Compile Include="Classes\GazeDataLogItem.cs" />
     <Compile Include="Classes\SeriesItem.cs" />
     <Compile Include="Classes\SeriesNames.cs" />
+    <Compile Include="Classes\SpotAndGain\CalcConfig.cs" />
+    <Compile Include="Classes\SpotAndGain\DataAnalyzer.cs" />
+    <Compile Include="Classes\SpotAndGain\SpotGazeFileDataTablet.cs" />
+    <Compile Include="Classes\SpotAndGain\SpotGazeFileData.cs" />
+    <Compile Include="Classes\SpotAndGain\SpotGainResults.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

@@ -1,10 +1,12 @@
-﻿using System;
+﻿using GazeDataViewer.Classes.SpotAndGain;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace GazeDataViewer.Classes
 {
@@ -106,5 +108,128 @@ namespace GazeDataViewer.Classes
             }
             return gazeDataItems;
         }
+
+        public static SpotGazeFileData LoadDataForSpotAndGaze(string filePath)
+        {
+            var fileInfo = new FileInfo(filePath);
+            var fileStream = fileInfo.OpenRead();
+            var fileDataStream = new StreamReader(fileStream);
+            var fileText = fileDataStream.ReadToEnd();
+            var lines = fileText.Split('\n');
+
+            var outputData = new SpotGazeFileData(lines.Length -1);
+
+            for(int i=0; i < lines.Length-1; i++)
+            {
+                var lineColumns = lines[i].Split(';');
+                if (lineColumns.Length > 5)
+                {
+                    var isTimeConverted = DateTime.TryParse(lineColumns[0], out outputData.Time[i]);
+                    //var isTimeConverted = DateTime.TryParseExact(lineColumns[0], "yyyy-MM-dd HH:mm:ss.FFF",
+                      //                  CultureInfo.InvariantCulture, DateTimeStyles.None, out outputData.Time[i]);
+
+                    float lEye; 
+                    float rEye;
+                    float spot;
+                    var isLEyeConverted = float.TryParse(lineColumns[1], NumberStyles.Any, CultureInfo.InvariantCulture, out lEye);
+                    var isREyeConverted = float.TryParse(lineColumns[3], NumberStyles.Any, CultureInfo.InvariantCulture, out rEye);
+                    var isSopotConverted = float.TryParse(lineColumns[5], NumberStyles.Any, CultureInfo.InvariantCulture, out spot);
+
+                    if (!isTimeConverted || !isLEyeConverted || !isREyeConverted || !isSopotConverted)
+                    {
+                        MessageBox.Show("Invalid format in input file at line " + i);
+                        break;
+                    }
+                    else
+                    {
+                        outputData.LEye[i] = lEye;
+                        outputData.REye[i] = rEye;
+                        outputData.Spot[i] = spot;
+
+                    }
+                }
+                else
+                {
+                    if (i != (lines.Length - 1))
+                    {
+                        MessageBox.Show("Missing columns in input file at line " + i);
+                        break;
+                    }
+                }
+            }
+
+            return outputData;
+        }
+
+        public static SpotGazeFileDataTablet LoadDataForSpotAndGaze(string eyeFilePath, string spotFilePath)
+        {
+            var fileInfo = new FileInfo(eyeFilePath);
+            var fileStream = fileInfo.OpenRead();
+            var fileDataStream = new StreamReader(fileStream);
+            var fileText = fileDataStream.ReadToEnd();
+            var eyeLines = fileText.Split('\n');
+
+            fileInfo = new FileInfo(spotFilePath);
+            fileStream = fileInfo.OpenRead();
+            fileDataStream = new StreamReader(fileStream);
+            fileText = fileDataStream.ReadToEnd();
+            var spotLines = fileText.Split('\n');
+
+            if(spotLines.Length != eyeLines.Length)
+            {
+                MessageBox.Show("Different length of eye and spot files!");
+            }
+
+            var outputData = new SpotGazeFileDataTablet(eyeLines.Length - 1);
+
+            for (int i = 0; i < eyeLines.Length - 1; i++)
+            {
+                var eyeLineColumns = eyeLines[i].Split(';');
+                var spotLineColumns = spotLines[i].Split(';');
+
+                if (eyeLineColumns.Length > 11 && spotLineColumns.Length > 2)
+                {
+                    var isTimeConverted = int.TryParse(eyeLineColumns[5], out outputData.Time[i]);
+                    //var isTimeConverted = DateTime.TryParseExact(lineColumns[0], "yyyy-MM-dd HH:mm:ss.FFF",
+                    //                  CultureInfo.InvariantCulture, DateTimeStyles.None, out outputData.Time[i]);
+
+                    float lEye;
+                    float rEye;
+                    float spot;
+                    var isLEyeConverted = float.TryParse(eyeLineColumns[11], NumberStyles.Any, CultureInfo.InvariantCulture, out lEye);
+                    var isREyeConverted = float.TryParse(eyeLineColumns[13], NumberStyles.Any, CultureInfo.InvariantCulture, out rEye);
+                    var isSopotConverted = float.TryParse(spotLineColumns[1], NumberStyles.Any, CultureInfo.InvariantCulture, out spot);
+
+                    if (!isTimeConverted || !isLEyeConverted || !isREyeConverted || !isSopotConverted)
+                    {
+                        MessageBox.Show("Invalid format in input file at line " + i);
+                        break;
+                    }
+                    else
+                    {
+                        outputData.LEye[i] = lEye;
+                        outputData.REye[i] = rEye;
+                        outputData.Spot[i] = spot;
+
+                    }
+                }
+                else
+                {
+                    if (i != (eyeLines.Length - 1))
+                    {
+                        MessageBox.Show("Missing columns in eye input file at line " + i);
+                        break;
+                    }
+                    if (i != (spotLines.Length - 1))
+                    {
+                        MessageBox.Show("Missing columns in spot input file at line " + i);
+                        break;
+                    }
+                }
+            }
+
+            return outputData;
+        }
+
     }
 }
