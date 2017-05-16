@@ -13,95 +13,60 @@ namespace GazeDataViewer.Classes.SpotAndGain
 
         public static SpotGainResults Analyze(SpotGazeFileData fileData, CalcConfig calcConfig, bool shouldDenoise, int recEnd, int numCoef, int derevOrder, int polyOrder)
         {
-            var timeSpans = GetDeltaTimespans(fileData.Time);
+            var timeSpans = GetDeltaTimespansInt(fileData.Time);
             //wyznaczamy środek amplitudy 
             var mncal = fileData.Spot.Min();
             var mxcal = fileData.Spot.Max();
-            float[] spotMinMaxDelta = { Math.Abs(mncal), mxcal };
+            double[] spotMinMaxDelta = { Math.Abs(mncal), mxcal };
             var meanSpotAmplitude = spotMinMaxDelta.Average();
 
-            var recStart = 0;
-            //var eyeShiftPeriod = 2;
-            //var spotShiftPeriod = -1;
-            //var ampProp = 0.1;
-
-            //var delayWindowLargerThan = 0.2;
-            //var delayWindowSmallerThan = 0.6;
-
-
-            if (calcConfig.CalcateRecStart)
-            {
-                //if (isEyeTribe)
-                //{
-                // początek (-2) od pierwszego przekroczenia środka amplitudy
-                var spotOverAmp = fileData.Spot.Where(x => x > meanSpotAmplitude);
-                if (spotOverAmp.Count() > 0)
-                {
-                    recStart = Array.IndexOf(fileData.Spot, spotOverAmp.Min()) - 2;
-                }
-                //}
-                //else
-                //{
-                //    recStart = 1000;
-                //    eyeShiftPeriod = 100;
-                //    ampProp = 0.5;
-                //}
-            }
-            else
-            {
-                recStart = calcConfig.RecStart;
-            }
-            // długość od recStart
-
-            //var recLenght = (fileData.originalLenght - recStart);
+          
+            var recStart = calcConfig.RecStart;
+       
             var eyeShiftPeriod = calcConfig.EyeShiftPeriod;
             var spotShiftPeriod = calcConfig.SpotShiftPeriod;
             var ampProp = calcConfig.AmpProp;
-            var delayWindowLargerThan = calcConfig.DelayWindowLargerThan;
-            var delayWindowSmallerThan = calcConfig.DelayWindowSmallerThan;
 
             // dane od recStart
             var recLenght = (recEnd - recStart);
             var timeStamps = timeSpans.Skip(recStart).Take(recLenght).ToArray();
-            var leftEyeAmplitudes = fileData.LEye.Skip(recStart).Take(recLenght).ToArray();
-            var rightEyeAmplitudes = fileData.REye.Skip(recStart).Take(recLenght).ToArray();
-            var spotAmplitudes = fileData.Spot.Skip(recStart).Take(recLenght).ToArray();
+            //var leftEyeCoords = fileData.LEye.Skip(recStart).Take(recLenght).ToArray();
+            var rightEyeCoords = fileData.REye.Skip(recStart).Take(recLenght).ToArray();
+            var spotCoords = fileData.Spot.Skip(recStart).Take(recLenght).ToArray();
 
             if (shouldDenoise)
             {
                 //left
-                double[] smoothedResult = new double[leftEyeAmplitudes.Length];
-                var input = Array.ConvertAll(leftEyeAmplitudes, x => (double)x);
+                double[] smoothedResult = new double[rightEyeCoords.Length];
                 var savGo = new SavitzkyGolay(numCoef, derevOrder, polyOrder);
-                savGo.Apply(input, smoothedResult);
+                savGo.Apply(rightEyeCoords, smoothedResult);
                 // wyrzuc float!!!
-                leftEyeAmplitudes = Array.ConvertAll(smoothedResult, x => (float)x);
+                rightEyeCoords = smoothedResult;
 
-                //right
-                smoothedResult = new double[rightEyeAmplitudes.Length];
-                input = Array.ConvertAll(rightEyeAmplitudes, x => (double)x);
-                savGo.Apply(input, smoothedResult);
-                rightEyeAmplitudes = Array.ConvertAll(smoothedResult, x => (float)x);
+                ////right
+                //smoothedResult = new double[rightEyeCoords.Length];
+                //savGo.Apply(rightEyeCoords, smoothedResult);
+                //rightEyeCoords = smoothedResult;
             }
         
 
             // tworzymy kopie danych z przesniętym reye, leye na shiftPeriod do tyłu (przed poczatkiem), 
             //spot do przodu początek na (+ shifPeroid) ? 
-            var shiftedRightEyeAmplitudes = BackRollArray(rightEyeAmplitudes, eyeShiftPeriod);
-            var shiftedLeftEyeAmplitudes = BackRollArray(leftEyeAmplitudes, eyeShiftPeriod);
-            var shiftedSpotAmplitudes = BackRollArray(spotAmplitudes, spotShiftPeriod);
+            var shiftedRightEyeCoords = BackRollArray(rightEyeCoords, eyeShiftPeriod);
+            //var shiftedLeftEyeCoords = BackRollArray(leftEyeCoords, eyeShiftPeriod);
+            var shiftedSpotCoords = BackRollArray(spotCoords, spotShiftPeriod);
 
             //# wylapujemy zmiany amplitudy sygnalu, dla oczu wieksza tolerancja z powodu mniejszej przewidywalnosci
             //czy różnica amplitud pomiędzy przesuniętymi odcinkami jest większa niż średnia amplitudy spot ('true')
             // z okna: amplituda przesuniete minus amplituda oryginalne
-            var rightEyeOverMeanSpotAmplitudeIndexes = GetIndexesOverAmplitude(shiftedRightEyeAmplitudes, rightEyeAmplitudes, meanSpotAmplitude, ampProp);
-            var leftEyeOverMeanSpotAmplitudeIndexes = GetIndexesOverAmplitude(shiftedLeftEyeAmplitudes, leftEyeAmplitudes, meanSpotAmplitude, ampProp);
-            var spotAmplitudeOverMeanIndexes = GetIndexesOverAmplitude(shiftedSpotAmplitudes, spotAmplitudes, meanSpotAmplitude, 0.9);
+            var rightEyeOverMeanSpotAmplitudeIndexes = GetIndexesOverAmplitude(shiftedRightEyeCoords, rightEyeCoords, meanSpotAmplitude, ampProp);
+            //var leftEyeOverMeanSpotAmplitudeIndexes = GetIndexesOverAmplitude(shiftedLeftEyeCoords, leftEyeCoords, meanSpotAmplitude, ampProp);
+            var spotAmplitudeOverMeanIndexes = GetIndexesOverAmplitude(shiftedSpotCoords, spotCoords, meanSpotAmplitude, 0.9);
 
             var lowestREyeOverAmpIndxesForSpotIndexes = new List<int>();
-            var lowestLEyeOverAmpIndxesForSpotIndexes = new List<int>();
-            var earliestREyeForSpotsOverAmpTimeDiffs = new List<TimeSpan>();
-            var earliestLEyeForSpotsOverAmpTimeDiffs = new List<TimeSpan>();
+            //var lowestLEyeOverAmpIndxesForSpotIndexes = new List<int>();
+            var earliestREyeForSpotsOverAmpTimeDiffs = new List<int>();
+            //var earliestLEyeForSpotsOverAmpTimeDiffs = new List<int>();
 
             // dla każdego rekordu spot powyżej amplitudy
             for (int i = 0; i < spotAmplitudeOverMeanIndexes.Count; i++)
@@ -110,7 +75,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
                 // bieżemy tylko indeksy wartości z różnicą więszą niż 5
                 var currSpotAmplitudeOverMeanIndex = spotAmplitudeOverMeanIndexes[i];
                 var reducedREyeOverAmpIndexesForCurrSpot = GetReducePointIndexes(rightEyeOverMeanSpotAmplitudeIndexes, currSpotAmplitudeOverMeanIndex, calcConfig.ReductMinEyeSpotAmpDiff);
-                var reducedLEyeOverAmpIndexesForCurrSpot = GetReducePointIndexes(leftEyeOverMeanSpotAmplitudeIndexes, currSpotAmplitudeOverMeanIndex, calcConfig.ReductMinEyeSpotAmpDiff);
+                //var reducedLEyeOverAmpIndexesForCurrSpot = GetReducePointIndexes(leftEyeOverMeanSpotAmplitudeIndexes, currSpotAmplitudeOverMeanIndex, calcConfig.ReductMinEyeSpotAmpDiff);
 
                 // dla każdego indeksu zredukowanego punktu
                 if (reducedREyeOverAmpIndexesForCurrSpot.Count > 0)
@@ -125,118 +90,119 @@ namespace GazeDataViewer.Classes.SpotAndGain
                     //timeDiffBetweenLowestEyeAndCurrSpotOverAmp
                     earliestREyeForSpotsOverAmpTimeDiffs.Add(timeStamps[rightEyeOverMeanSpotAmplitudeIndexes[lowestREyeIndexForCurrentSpot]] - timeStamps[currSpotAmplitudeOverMeanIndex]);
 
-                    if (reducedLEyeOverAmpIndexesForCurrSpot.Count > 0)
-                    {
-                        lowestLEyeOverAmpIndxesForSpotIndexes.Add(reducedLEyeOverAmpIndexesForCurrSpot.Min());
-                    }
-
-                    if (lowestLEyeOverAmpIndxesForSpotIndexes.Count <= i)
-                    {
-                    }
-                        var ealiestSpotIndex = leftEyeOverMeanSpotAmplitudeIndexes[lowestLEyeOverAmpIndxesForSpotIndexes[i]];
-                        earliestLEyeForSpotsOverAmpTimeDiffs.Add(timeStamps[ealiestSpotIndex] - timeStamps[currSpotAmplitudeOverMeanIndex]);
+                    //if (reducedLEyeOverAmpIndexesForCurrSpot.Count > 0)
+                    //{
+                    //    lowestLEyeOverAmpIndxesForSpotIndexes.Add(reducedLEyeOverAmpIndexesForCurrSpot.Min());
                     //}
+
+                    //if (lowestLEyeOverAmpIndxesForSpotIndexes.Count <= i)
+                    //{
+                    //}
+                    //    var ealiestSpotIndex = leftEyeOverMeanSpotAmplitudeIndexes[lowestLEyeOverAmpIndxesForSpotIndexes[i]];
+                    //    earliestLEyeForSpotsOverAmpTimeDiffs.Add(timeStamps[ealiestSpotIndex] - timeStamps[currSpotAmplitudeOverMeanIndex]);
+                    ////}
                 }
             }
 
             // zawezamy znalezione zmiany amplitudy dla oczu tak aby odpowiadaly w miare pewnym zmianom amplitudy markera
             // tylko amplitudy oka o indeksie równym najniżeszmu indeksowi zredukowanych punktów amplitudy oka   
             var earliestREyeOverAmpForSpotOverAmpIndexes = NarrowList(rightEyeOverMeanSpotAmplitudeIndexes, lowestREyeOverAmpIndxesForSpotIndexes);
-            var earliestLEyeOverAmpForSpotOverAmpIndexes = NarrowList(leftEyeOverMeanSpotAmplitudeIndexes, lowestLEyeOverAmpIndxesForSpotIndexes);
+            //var earliestLEyeOverAmpForSpotOverAmpIndexes = NarrowList(leftEyeOverMeanSpotAmplitudeIndexes, lowestLEyeOverAmpIndxesForSpotIndexes);
 
-            var earliestREyeOverAmpForSpotOverAmpTimeStamps = NarrowList(timeStamps.ToList(), earliestREyeOverAmpForSpotOverAmpIndexes);
+            //var earliestREyeOverAmpForSpotOverAmpTimeStamps = NarrowList(timeStamps.ToList(), earliestREyeOverAmpForSpotOverAmpIndexes);
 
-            var results = new SpotGainResults
-            {
-                REyeEarliestOverAmpForSpotTimeStamps = NarrowList(timeStamps.ToList(), earliestREyeOverAmpForSpotOverAmpIndexes),
-                LEyeEarliestOverAmpForSpotTimeStamps = NarrowList(timeStamps.ToList(), earliestLEyeOverAmpForSpotOverAmpIndexes),
-                SpotOverAmpForSpotTimeStamps = NarrowList(timeStamps.ToList(), spotAmplitudeOverMeanIndexes)
-            };
+            //var results = new SpotGainResults
+            //{
+            //    REyeEarliestOverAmpForSpotTimeStamps = NarrowList(timeStamps.ToList(), earliestREyeOverAmpForSpotOverAmpIndexes),
+            //    LEyeEarliestOverAmpForSpotTimeStamps = NarrowList(timeStamps.ToList(), earliestLEyeOverAmpForSpotOverAmpIndexes),
+            //    SpotOverAmpForSpotTimeStamps = NarrowList(timeStamps.ToList(), spotAmplitudeOverMeanIndexes)
+            //};
 
-            //############### DELAY # delay with seconds
-            //# filter > 0.6 as saccades with issues eg. end of saccade before marker
+            ////############### DELAY # delay with seconds
+            ////# filter > 0.6 as saccades with issues eg. end of saccade before marker
 
-            var rEyeDelays = earliestREyeForSpotsOverAmpTimeDiffs.Select(x => x.TotalSeconds);
-            var lEyeDelays = earliestLEyeForSpotsOverAmpTimeDiffs.Select(x => x.TotalSeconds);
+            //var rEyeDelays = earliestREyeForSpotsOverAmpTimeDiffs.Select(x => x.TotalSeconds);
+            //var lEyeDelays = earliestLEyeForSpotsOverAmpTimeDiffs.Select(x => x.TotalSeconds);
 
-            //var rEyeDelays = earliestREyeForSpotsOverAmpTimeDiffs.Select(x => x.TotalSeconds).Where(x => x < delayWindowSmallerThan && x > delayWindowLargerThan);
-            //var lEyeDelays = earliestLEyeForSpotsOverAmpTimeDiffs.Select(x => x.TotalSeconds).Where(x => x < delayWindowSmallerThan && x > delayWindowLargerThan);
+            ////var rEyeDelays = earliestREyeForSpotsOverAmpTimeDiffs.Select(x => x.TotalSeconds).Where(x => x < delayWindowSmallerThan && x > delayWindowLargerThan);
+            ////var lEyeDelays = earliestLEyeForSpotsOverAmpTimeDiffs.Select(x => x.TotalSeconds).Where(x => x < delayWindowSmallerThan && x > delayWindowLargerThan);
 
-            var meanDelayREye = rEyeDelays.Count() > 0 ? rEyeDelays.Average() : 0;
-            var meanDelayLEye = lEyeDelays.Count() > 0 ? lEyeDelays.Average() : 0;
-            var sdDelayREye = rEyeDelays.Count() > 0 ? CountStd(rEyeDelays) : 0;
-            var sdDelayLEye = lEyeDelays.Count() > 0 ? CountStd(lEyeDelays) : 0;
+            //var meanDelayREye = rEyeDelays.Count() > 0 ? rEyeDelays.Average() : 0;
+            //var meanDelayLEye = lEyeDelays.Count() > 0 ? lEyeDelays.Average() : 0;
+            //var sdDelayREye = rEyeDelays.Count() > 0 ? CountStd(rEyeDelays) : 0;
+            //var sdDelayLEye = lEyeDelays.Count() > 0 ? CountStd(lEyeDelays) : 0;
 
-            //############### MAX SPEED
-            //różnica pomiędzy czasem i czasem - przesunięcie
-            var lEyeMaxSpeedTimes = GetMaxSpeedTimes(timeStamps, earliestLEyeOverAmpForSpotOverAmpIndexes, eyeShiftPeriod);
-            var rEyeMaxSpeedTimes = GetMaxSpeedTimes(timeStamps, earliestREyeOverAmpForSpotOverAmpIndexes, eyeShiftPeriod);
+            ////############### MAX SPEED
+            ////różnica pomiędzy czasem i czasem - przesunięcie
+            //var lEyeMaxSpeedTimes = GetMaxSpeedTimes(timeStamps, earliestLEyeOverAmpForSpotOverAmpIndexes, eyeShiftPeriod);
+            //var rEyeMaxSpeedTimes = GetMaxSpeedTimes(timeStamps, earliestREyeOverAmpForSpotOverAmpIndexes, eyeShiftPeriod);
 
-            var meanLEyeMaxSpeedTime = lEyeMaxSpeedTimes.Count() > 0 ? lEyeMaxSpeedTimes.Average() : 0;
-            var meanREyeMaxSpeedTime = rEyeMaxSpeedTimes.Count() > 0 ? rEyeMaxSpeedTimes.Average() : 0;
+            //var meanLEyeMaxSpeedTime = lEyeMaxSpeedTimes.Count() > 0 ? lEyeMaxSpeedTimes.Average() : 0;
+            //var meanREyeMaxSpeedTime = rEyeMaxSpeedTimes.Count() > 0 ? rEyeMaxSpeedTimes.Average() : 0;
 
-            // (amplituda minus amplituda shifted) / mean spot Amp  
-            var lEyetMaxSpeedAmplitude = GetMaxSpeedAmplitudes(leftEyeAmplitudes, earliestLEyeOverAmpForSpotOverAmpIndexes, eyeShiftPeriod, meanSpotAmplitude);
-            var rEyetMaxSpeedAmplitude = GetMaxSpeedAmplitudes(rightEyeAmplitudes, earliestREyeOverAmpForSpotOverAmpIndexes, eyeShiftPeriod, meanSpotAmplitude);
+            //// (amplituda minus amplituda shifted) / mean spot Amp  
+            //var lEyetMaxSpeedAmplitude = GetMaxSpeedAmplitudes(leftEyeCoords, earliestLEyeOverAmpForSpotOverAmpIndexes, eyeShiftPeriod, meanSpotAmplitude);
+            //var rEyetMaxSpeedAmplitude = GetMaxSpeedAmplitudes(rightEyeCoords, earliestREyeOverAmpForSpotOverAmpIndexes, eyeShiftPeriod, meanSpotAmplitude);
 
-            //not used
-            //var msple = lEyetMaxSpeedAmplitude.Average() / meanLEyeMaxSpeedTime;
-            //var mspre = rEyetMaxSpeedAmplitude.Average() / meanREyeMaxSpeedTime;
+            ////not used
+            ////var msple = lEyetMaxSpeedAmplitude.Average() / meanLEyeMaxSpeedTime;
+            ////var mspre = rEyetMaxSpeedAmplitude.Average() / meanREyeMaxSpeedTime;
 
-            //############### duration
+            ////############### duration
 
-            var odd_cnt = GetEvenOrOddIndexeValues(earliestLEyeOverAmpForSpotOverAmpIndexes, false).Count();
-            var even_cnt = GetEvenOrOddIndexeValues(earliestLEyeOverAmpForSpotOverAmpIndexes, true).Count();
+            //var odd_cnt = GetEvenOrOddIndexeValues(earliestLEyeOverAmpForSpotOverAmpIndexes, false).Count();
+            //var even_cnt = GetEvenOrOddIndexeValues(earliestLEyeOverAmpForSpotOverAmpIndexes, true).Count();
 
-            var elem_cnt = odd_cnt;
-            if( elem_cnt > even_cnt)
-            {
-                elem_cnt = even_cnt;
-            }
+            //var elem_cnt = odd_cnt;
+            //if( elem_cnt > even_cnt)
+            //{
+            //    elem_cnt = even_cnt;
+            //}
 
-            //??? do opisania
-            var ldur = GetAmplitudeSeconds(timeStamps, earliestLEyeOverAmpForSpotOverAmpIndexes, elem_cnt);
-            var rdur = GetAmplitudeSeconds(timeStamps, earliestREyeOverAmpForSpotOverAmpIndexes, elem_cnt);
+            ////??? do opisania
+            //var ldur = GetAmplitudeSeconds(timeStamps, earliestLEyeOverAmpForSpotOverAmpIndexes, elem_cnt);
+            //var rdur = GetAmplitudeSeconds(timeStamps, earliestREyeOverAmpForSpotOverAmpIndexes, elem_cnt);
 
-            var mredur = rdur.Count > 0 ? rdur.Average(): 0;
-            var stdredur = rdur.Count > 0 ? CountStd(rdur): 0;
-            var mledur = ldur.Count > 0 ? ldur.Average() : 0;
-            var stdledur = ldur.Count > 0 ? CountStd(ldur) : 0;
+            //var mredur = rdur.Count > 0 ? rdur.Average(): 0;
+            //var stdredur = rdur.Count > 0 ? CountStd(rdur): 0;
+            //var mledur = ldur.Count > 0 ? ldur.Average() : 0;
+            //var stdledur = ldur.Count > 0 ? CountStd(ldur) : 0;
 
+            var results = new SpotGainResults();
             results.PlotData = new PlotData
             {
-                Kre = earliestREyeOverAmpForSpotOverAmpIndexes,
-                Ksp = spotAmplitudeOverMeanIndexes,
-                Leye = leftEyeAmplitudes,
-                Reye = rightEyeAmplitudes,
+                EarliestREyeOverSpotIndex = earliestREyeOverAmpForSpotOverAmpIndexes,
+                SpotOverMeanIndex = spotAmplitudeOverMeanIndexes,
+                //LeftEyeCoords = leftEyeCoords,
+                RightEyeCoords = rightEyeCoords,
                 ShiftPeriod = eyeShiftPeriod,
-                Spot = spotAmplitudes,
-                Stime = timeStamps
+                SpotCoords = spotCoords,
+                TimeStamps = timeStamps
 
             };
 
-            results.MeanSpotAmplitude = meanSpotAmplitude;
+            //results.MeanSpotAmplitude = meanSpotAmplitude;
 
-            results.MeanDelayRe = Math.Round(meanDelayREye, 4);
-            results.MeanDelayLe = Math.Round(meanDelayLEye, 4);
-            results.StdDelayRe = Math.Round(sdDelayREye, 4);
-            results.StdDelayLe = Math.Round(sdDelayLEye, 4);
+            //results.MeanDelayRe = Math.Round(meanDelayREye, 4);
+            //results.MeanDelayLe = Math.Round(meanDelayLEye, 4);
+            //results.StdDelayRe = Math.Round(sdDelayREye, 4);
+            //results.StdDelayLe = Math.Round(sdDelayLEye, 4);
 
-            results.DelaysRe = rEyeDelays.ToArray();
-            results.DelaysLe = lEyeDelays.ToArray();
+            //results.DelaysRe = rEyeDelays.ToArray();
+            //results.DelaysLe = lEyeDelays.ToArray();
 
-            results.MaxSpeedTimesRe = rEyeMaxSpeedTimes.ToArray();
-            results.MaxSpeedTimesLe = lEyeMaxSpeedTimes.ToArray();
-            results.MaxSpeedAmpsRe = rEyetMaxSpeedAmplitude.ToArray();
-            results.MaxSpeedAmpsLe = lEyetMaxSpeedAmplitude.ToArray();
+            //results.MaxSpeedTimesRe = rEyeMaxSpeedTimes.ToArray();
+            //results.MaxSpeedTimesLe = lEyeMaxSpeedTimes.ToArray();
+            //results.MaxSpeedAmpsRe = rEyetMaxSpeedAmplitude.ToArray();
+            //results.MaxSpeedAmpsLe = lEyetMaxSpeedAmplitude.ToArray();
 
-            results.MeanDurationRe = Math.Round(mredur, 4);
-            results.MeanDurationLe = Math.Round(mledur, 4);
-            results.StdDurationRe = Math.Round(stdredur, 4);
-            results.StdDurationLe = Math.Round(stdledur, 4);
+            //results.MeanDurationRe = Math.Round(mredur, 4);
+            //results.MeanDurationLe = Math.Round(mledur, 4);
+            //results.StdDurationRe = Math.Round(stdredur, 4);
+            //results.StdDurationLe = Math.Round(stdledur, 4);
 
-            results.DurationsRe = rdur.ToArray();
-            results.DurationsLe = ldur.ToArray();
+            //results.DurationsRe = rdur.ToArray();
+            //results.DurationsLe = ldur.ToArray();
 
             return results;
         }
@@ -287,7 +253,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
 
 
         // (amplituda minus amplituda shifted) / mean spot Amp 
-        private static List<double> GetMaxSpeedAmplitudes(float[] eyeAmplitudes, List<int> indexes, int shift, float meanSpotAmp)
+        private static List<double> GetMaxSpeedAmplitudes(double[] eyeAmplitudes, List<int> indexes, int shift, double meanSpotAmp)
         {
             var output = new List<double>();
            
@@ -321,7 +287,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
             return output;
         }
 
-        private static List<float> SubstractValuesInArray(List<float> array, float subtrahend)
+        private static List<double> SubstractValuesInArray(List<double> array, float subtrahend)
         {
             for(int i=0; i < array.Count; i++)
             {
@@ -364,12 +330,12 @@ namespace GazeDataViewer.Classes.SpotAndGain
         }
 
         //czy różnica amplitud pomiędzy przesuniętymi odcinkami jest większa niż średnia amplitudy spot.  
-        private static List<int> GetIndexesOverAmplitude(float[]shiftedAmplitudes, float[] amplitudes, float meanSpotAmplitude, double ampProp)
+        private static List<int> GetIndexesOverAmplitude(double[]shiftedCoords, double[] coords, double meanSpotAmplitude, double ampProp)
         {
             var output = new List<int>();
-            for (int i = 0; i < amplitudes.Length; i++)
+            for (int i = 0; i < coords.Length; i++)
             {
-                var subval = Math.Abs(shiftedAmplitudes[i] - amplitudes[i]);
+                var subval = Math.Abs(shiftedCoords[i] - coords[i]);
                 if (subval > meanSpotAmplitude * ampProp)
                 {
                     output.Add(i);
@@ -402,6 +368,19 @@ namespace GazeDataViewer.Classes.SpotAndGain
             for (int i = 0; i < timestamps.Length; i++)
             {
                 var timeSpan =  TimeSpan.FromMilliseconds(timestamps[i] - startTime);
+                stime.Add(timeSpan);
+            }
+            return stime.ToArray();
+        }
+
+        private static int[] GetDeltaTimespansInt(int[] timestamps)
+        {
+            var startTime = timestamps[0];
+            var stime = new List<int>();
+
+            for (int i = 0; i < timestamps.Length; i++)
+            {
+                var timeSpan = timestamps[i] - startTime;
                 stime.Add(timeSpan);
             }
             return stime.ToArray();

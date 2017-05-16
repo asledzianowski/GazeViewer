@@ -93,11 +93,15 @@
     <Compile Include="Classes\Denoise\WavletDenoise.cs" />
     <Compile Include="Classes\DrawingHelper.cs" />
     <Compile Include="Classes\GazeDataLogItem.cs" />
+    <Compile Include="Classes\Saccade\PositionItem.cs" />
+    <Compile Include="Classes\Saccade\SaccadeDataHelper.cs" />
+    <Compile Include="Classes\Saccade\SaccadeParamsCalcuator.cs" />
+    <Compile Include="Classes\Saccade\SaccadeResult.cs" />
     <Compile Include="Classes\SeriesItem.cs" />
     <Compile Include="Classes\SeriesNames.cs" />
     <Compile Include="Classes\SpotAndGain\CalcConfig.cs" />
     <Compile Include="Classes\SpotAndGain\DataAnalyzer.cs" />
-    <Compile Include="Classes\SpotAndGain\SpotGazeFileDataTablet.cs" />
+    <Compile Include="Classes\Saccade\SaccadePosition.cs" />
     <Compile Include="Classes\SpotAndGain\SpotGazeFileData.cs" />
     <Compile Include="Classes\SpotAndGain\SpotGainResults.cs" />
     <Compile Include="MainWindow.xaml.cs">

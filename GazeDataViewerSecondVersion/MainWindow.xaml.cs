@@ -20,7 +20,7 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using GazeDataViewer.Classes.Denoise;
+using GazeDataViewer.Classes.Saccade;
 
 namespace GazeDataViewer
 {
@@ -33,7 +33,7 @@ namespace GazeDataViewer
 
         SpotGazeFileData FileData { get; set; }
 
-        SpotGazeFileDataTablet FileDataTablet { get;  set; }
+        List<SaccadePosition> SaccadePositions { get; set; }
 
         string SpotFilePath { get; set; }
 
@@ -50,12 +50,16 @@ namespace GazeDataViewer
             //LoadDataAndAnalyze(filePath);
         }
 
-       
+
 
         private void LoadDataButton_Click(object sender, RoutedEventArgs e)
         {
-            
+
             LoadDataAndAnalyze(EyeFilePath);
+            BtnCalculate.IsEnabled = true;
+            BtnApply.IsEnabled = true;
+            BtnSaccadeCalc.IsEnabled = true;
+            BtnAddEyeMove.IsEnabled = true;
 
             //var dialog = new OpenFileDialog();
             //dialog.ShowDialog();
@@ -74,27 +78,29 @@ namespace GazeDataViewer
 
         private void LoadDataAndAnalyze(string eyeFilePath)
         {
-            this.FileData = DataHelper.LoadDataForSpotAndGaze(eyeFilePath);
+            var timeColumnIndex = int.Parse(TBTimestampColumnIndex.Text);
+            var eyeColumnIndex = int.Parse(TBEyeColumnIndex.Text);
+            var spotColumnIndex = int.Parse(TBSpotColumnIndex.Text);
+
+            this.FileData = DataHelper.LoadDataForSpotAndGaze(eyeFilePath, timeColumnIndex, eyeColumnIndex, spotColumnIndex);
             var calcConfig = GetCurrentCalcConfig();
             TBEndRec.Text = FileData.Time.Length.ToString();
             Analyze(this.FileData, calcConfig);
         }
 
-      
+
 
         private void Analyze(SpotGazeFileData fileData, CalcConfig calcConfig)
         {
-            
+
             var recStart = 0;
             var recEnd = 0;
 
-            if (CBEvalStart.IsChecked == false)
+
+            var startParsed = int.TryParse(TBStartRec.Text, out recStart);
+            if (!startParsed)
             {
-                var startParsed = int.TryParse(TBStartRec.Text, out recStart);
-                if (!startParsed)
-                {
-                    MessageBox.Show("Wrong value of start rec");
-                }
+                MessageBox.Show("Wrong value of start rec");
             }
 
             var endParsed = int.TryParse(TBEndRec.Text, out recEnd);
@@ -115,7 +121,7 @@ namespace GazeDataViewer
 
             if (recStart > 0 && recEnd <= FileData.Time.Length)
             {
-               
+
                 if (numCoef >= Math.Abs(recEnd - recStart))
                 {
                     MessageBox.Show("Number of coefficients must be <= number of records ");
@@ -138,7 +144,7 @@ namespace GazeDataViewer
             }
         }
 
-      
+
 
         private void PlotDataForSpotGain(SpotGainResults results, CalcConfig calcCnfig)
         {
@@ -160,16 +166,16 @@ namespace GazeDataViewer
             //    results.PlotData.Reye = Array.ConvertAll(fix.ToArray(), x => (float)x);
 
             //}
-            var timeAxisDataSource = new EnumerableDataSource<TimeSpan>(results.PlotData.Stime);
-            timeAxisDataSource.SetXMapping(x => x.TotalSeconds);
-           
-            var lEyeDataSource = new EnumerableDataSource<float>(results.PlotData.Reye);
-            lEyeDataSource.SetYMapping(x => x);
+            var timeAxisDataSource = new EnumerableDataSource<int>(results.PlotData.TimeStamps);
+            timeAxisDataSource.SetXMapping(x => x);
 
-            var spotDataSource = new EnumerableDataSource<float>(results.PlotData.Spot);
+            var eyeDataSource = new EnumerableDataSource<double>(results.PlotData.RightEyeCoords);
+            eyeDataSource.SetYMapping(x => x);
+
+            var spotDataSource = new EnumerableDataSource<double>(results.PlotData.SpotCoords);
             spotDataSource.SetYMapping(x => x);
 
-            var eyeCompositeDataSource = new CompositeDataSource(timeAxisDataSource, lEyeDataSource);
+            var eyeCompositeDataSource = new CompositeDataSource(timeAxisDataSource, eyeDataSource);
             var spotCompositeDataSource = new CompositeDataSource(timeAxisDataSource, spotDataSource);
 
             LineGraph line;
@@ -187,292 +193,384 @@ namespace GazeDataViewer
             amplitudePlotter.FitToView();
 
 
-            var kreMarkerXPoints = new List<double>();
-            var kreMarkerYPoints = new List<double>();
-
-            var saccadeStartXPoints = new List<double>();
-            var saccadeStartYPoints = new List<double>();
-
-            var saccadeEndXPoints = new List<double>();
-            var saccadeEndYPoints = new List<double>();
-
-            var kspMarkerXPoints = new List<double>();
-            var kspMarkerYPoints = new List<double>();
-
-            var fillGaps = CBFillPlot.IsChecked.GetValueOrDefault();
-
-            foreach (var kreIndex in results.PlotData.Kre)
+            SaccadePositions = new List<SaccadePosition>();
+            for (int i = 0; i < results.PlotData.EarliestREyeOverSpotIndex.Count; i++)
             {
-                var currentIndexForShift = kreIndex + results.PlotData.ShiftPeriod;
+                var currentEyeOverSpotIndex = results.PlotData.EarliestREyeOverSpotIndex[i];
+                var spotOverMeanIndex = results.PlotData.SpotOverMeanIndex[i];
+                var currentEyeShiftIndex = SaccadeDataHelper.CountEyeShiftIndex(currentEyeOverSpotIndex, results.PlotData.ShiftPeriod, calcCnfig.SaccadeEndShiftPeroid);
+                var currentSpotShiftIndex = SaccadeDataHelper.CountSpotShiftIndex(spotOverMeanIndex, results.PlotData.ShiftPeriod);
 
-                if (currentIndexForShift < results.PlotData.Stime.Count())
+                if (currentEyeShiftIndex < results.PlotData.TimeStamps.Count() && currentSpotShiftIndex < results.PlotData.TimeStamps.Count())
                 {
-
-                    saccadeStartXPoints.Add(Math.Round(results.PlotData.Stime[kreIndex].TotalSeconds, 6));
-                    saccadeStartYPoints.Add(results.PlotData.Reye[kreIndex]);
-
-                    saccadeEndXPoints.Add(Math.Round(results.PlotData.Stime[currentIndexForShift].TotalSeconds, 6));
-                    saccadeEndYPoints.Add(results.PlotData.Reye[currentIndexForShift]);
-
-                    if (fillGaps)
-                    {
-                        for (int i = kreIndex; i <= currentIndexForShift; i++)
-                        {
-                            //if (!kreMarkerXPoints.Contains(Math.Round(results.PlotData.Stime[i].TotalSeconds, 2)))
-                            //{
-                            //    kreMarkerXPoints.Add(Math.Round(results.PlotData.Stime[i].TotalSeconds, 2));
-                            //    kreMarkerYPoints.Add(results.PlotData.Leye[i]);
-                            //}
-
-                            kreMarkerXPoints.Add(Math.Round(results.PlotData.Stime[i].TotalSeconds, 6));
-                            kreMarkerYPoints.Add(results.PlotData.Reye[i]);
-                        }
-                    }
-                    else
-                    {
-                        kreMarkerXPoints.Add(Math.Round(results.PlotData.Stime[kreIndex].TotalSeconds, 6));
-                        kreMarkerYPoints.Add(results.PlotData.Reye[kreIndex]);
-
-                        kreMarkerXPoints.Add(Math.Round(results.PlotData.Stime[currentIndexForShift].TotalSeconds, 6));
-                        kreMarkerYPoints.Add(results.PlotData.Reye[currentIndexForShift]);
-                    }
-
+                    var saccItem = SaccadeDataHelper.GetSaccadePositionItem(i, currentEyeOverSpotIndex, currentEyeShiftIndex,
+                        spotOverMeanIndex, currentSpotShiftIndex, results);
+                    SaccadePositions.Add(saccItem);
                 }
             }
 
-            foreach (var kspIndex in results.PlotData.Ksp)
-            {
-                var shiftIndex = kspIndex + results.PlotData.ShiftPeriod;
+            //foreach (var spotOverMeanIndex in results.PlotData.SpotOverMeanIndex)
+            //{
+            //    var shiftIndex = spotOverMeanIndex + results.PlotData.ShiftPeriod;
 
-                if ((kspIndex + results.PlotData.ShiftPeriod) < results.PlotData.Stime.Count())
-                {
+            //    if (shiftIndex < results.PlotData.TimeStamps.Count())
+            //    {
+            //        spotMarkerXPoints.Add(results.PlotData.TimeStamps[spotOverMeanIndex].TotalSeconds);
+            //        spotMarkerYPoints.Add(results.PlotData.SpotCoords[spotOverMeanIndex]);
 
-                    if (fillGaps)
-                    {
-                        for (int i = kspIndex; i <= shiftIndex; i++)
-                        {
-                            kspMarkerXPoints.Add(results.PlotData.Stime[i].TotalSeconds);
-                            kspMarkerYPoints.Add(results.PlotData.Spot[i]);
-                        }
-                    }
-                    else
-                    {
-                        kspMarkerXPoints.Add(results.PlotData.Stime[kspIndex].TotalSeconds);
-                        //kspMarkerYPoints.Add(results.PlotData.Leye[kspIndex]);
-                        kspMarkerYPoints.Add(results.PlotData.Spot[kspIndex]);
+            //        spotMarkerXPoints.Add(results.PlotData.TimeStamps[shiftIndex].TotalSeconds);
+            //        spotMarkerYPoints.Add(results.PlotData.SpotCoords[shiftIndex]);
 
-                        kspMarkerXPoints.Add(results.PlotData.Stime[shiftIndex].TotalSeconds);
-                        kspMarkerYPoints.Add(results.PlotData.Spot[shiftIndex]);
-                        //kspMarkerYPoints.Add(results.PlotData.Leye[shiftIndex]);
+            //    }
+            //}
 
-                    }
-
-                }
-            }
-
-            var kreMarkerXDataSource = new EnumerableDataSource<double>(kreMarkerXPoints);
-            kreMarkerXDataSource.SetXMapping(x => x);
-            var kreMarkerYDataSource = new EnumerableDataSource<double>(kreMarkerYPoints);
-            kreMarkerYDataSource.SetYMapping(x => x);
-
-            var kspMarkerXDataSource = new EnumerableDataSource<double>(kspMarkerXPoints);
-            kspMarkerXDataSource.SetXMapping(x => x);
-            var kspMarkerYDataSource = new EnumerableDataSource<double>(kspMarkerYPoints);
-            kspMarkerYDataSource.SetYMapping(x => x);
+            //var spotMarkerXDataSource = new EnumerableDataSource<double>(spotMarkerXPoints);
+            //spotMarkerXDataSource.SetXMapping(x => x);
+            //var spotMarkerYDataSource = new EnumerableDataSource<double>(spotMarkerYPoints);
+            //spotMarkerYDataSource.SetYMapping(x => x);
 
 
-            var saccadeStartXDataSource = new EnumerableDataSource<double>(saccadeStartXPoints);
-            saccadeStartXDataSource.SetXMapping(x => x);
-            var saccadeStartYDataSource = new EnumerableDataSource<double>(saccadeStartYPoints);
-            saccadeStartYDataSource.SetYMapping(x => x);
+            //var spotMarkerCompositeDataSource = new CompositeDataSource(spotMarkerYDataSource, spotMarkerXDataSource);
 
-            var saccadeEndXDataSource = new EnumerableDataSource<double>(saccadeEndXPoints);
-            saccadeEndXDataSource.SetXMapping(x => x);
-            var saccadeEndYDataSource = new EnumerableDataSource<double>(saccadeEndYPoints);
-            saccadeEndYDataSource.SetYMapping(x => x);
+            //var marker = new MarkerPointsGraph(spotMarkerCompositeDataSource);
+            //var markPen = new CirclePointMarker();
+            //markPen.Pen = new Pen(Brushes.Red, 1);
+            //markPen.Size = 5;
+            //markPen.Fill = Brushes.Red;
+            //marker.Marker = markPen;
+
+            //amplitudePlotter.Children.Add(marker);
 
 
+            ApplySpotPointMarkers(SaccadePositions);
+            ApplySaccadeMarkersAndControls(SaccadePositions);
 
-            var kreMarkerCompositeDataSource = new CompositeDataSource(kreMarkerXDataSource, kreMarkerYDataSource);
-            var kspMarkerCompositeDataSource = new CompositeDataSource(kspMarkerYDataSource, kspMarkerXDataSource);
+            amplitudePlotter.FitToView();
 
-            var saccadeStartCompositeDataSource = new CompositeDataSource(saccadeStartXDataSource, saccadeStartYDataSource);
-            var saccadeEndCompositeDataSource = new CompositeDataSource(saccadeEndXDataSource, saccadeEndYDataSource);
+            //LogData(results);
 
-            var marker = new MarkerPointsGraph(kreMarkerCompositeDataSource);
+            //fit to view with margins
+            var yMargin = ((results.PlotData.RightEyeCoords.Max() - results.PlotData.RightEyeCoords.Min()) / 10);
+            var xMargin = ((results.PlotData.TimeStamps.Max() - results.PlotData.TimeStamps.Min()) / 20);
+
+            var xMin = results.PlotData.TimeStamps.Min() - xMargin;
+            var xMax = results.PlotData.TimeStamps.Max() + xMargin;
+            var yMin = results.PlotData.RightEyeCoords.Min() - yMargin;
+            var yMax = results.PlotData.RightEyeCoords.Max() + yMargin;
+            amplitudePlotter.Viewport.Visible = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
+        }
+
+
+        private void ApplySpotPointMarkers(List<SaccadePosition> saccades)
+        {
+            var spotStartDataSource = new EnumerableDataSource<SaccadePosition>(saccades);
+            spotStartDataSource.SetXMapping(x => x.SpotStartTime);
+            spotStartDataSource.SetYMapping(x => x.SpotStartCoord);
+
+            var spotEndDataSource = new EnumerableDataSource<SaccadePosition>(saccades);
+            spotEndDataSource.SetXMapping(x => x.SpotEndTime);
+            spotEndDataSource.SetYMapping(x => x.SpotEndCoord);
+
+            var marker = new MarkerPointsGraph(spotStartDataSource);
             var markPen = new CirclePointMarker();
-            markPen.Pen = new Pen(Brushes.CornflowerBlue, 1);
-            markPen.Size = 5;
-            markPen.Fill = Brushes.CornflowerBlue;
-            marker.Marker = markPen;
-
-            amplitudePlotter.Children.Add(marker);
-
-            marker = new MarkerPointsGraph(kspMarkerCompositeDataSource);
-            markPen = new CirclePointMarker();
             markPen.Pen = new Pen(Brushes.Red, 1);
-            markPen.Size = 5;
+            markPen.Size = 6;
+            marker.Name = "SpotStart";
             markPen.Fill = Brushes.Red;
             marker.Marker = markPen;
 
             amplitudePlotter.Children.Add(marker);
 
-            marker = new MarkerPointsGraph(saccadeStartCompositeDataSource);
+            marker = new MarkerPointsGraph(spotEndDataSource);
             markPen = new CirclePointMarker();
+            markPen.Pen = new Pen(Brushes.Red, 1);
+            markPen.Size = 6;
+            marker.Name = "SpotEnd";
+            markPen.Fill = Brushes.Red;
+            marker.Marker = markPen;
+
+            amplitudePlotter.Children.Add(marker);
+
+        }
+        private void ApplySaccadeMarkersAndControls(List<SaccadePosition> saccades)
+        {
+            RemoveSaccadeMarkers();
+            ApplySaccadePointMarkers(saccades);
+            ApplySaccadeTextMarkers(saccades.Select(x => x.SaccadeStartTime).ToList(), saccades.Select(x => x.SaccadeStartCoord).ToList(), "Start");
+            ApplySaccadeTextMarkers(saccades.Select(x => x.SaccadeEndTime).ToList(), saccades.Select(x => x.SaccadeEndCoord).ToList(), "End");
+            ApplySaccadeControls(saccades);
+        }
+
+        private void ApplySaccadePointMarkers(List<SaccadePosition> saccades)
+        {
+            var saccadeStartDataSource = new EnumerableDataSource<SaccadePosition>(saccades);
+            saccadeStartDataSource.SetXMapping(x => x.SaccadeStartTime);
+            saccadeStartDataSource.SetYMapping(x => x.SaccadeStartCoord);
+
+            var saccadeEndDataSource = new EnumerableDataSource<SaccadePosition>(saccades);
+            saccadeEndDataSource.SetXMapping(x => x.SaccadeEndTime);
+            saccadeEndDataSource.SetYMapping(x => x.SaccadeEndCoord);
+
+            var marker = new MarkerPointsGraph(saccadeStartDataSource);
+            var markPen = new CirclePointMarker();
             markPen.Pen = new Pen(Brushes.Chartreuse, 1);
             markPen.Size = 6;
+            marker.Name = "SaccStart";
             markPen.Fill = Brushes.Chartreuse;
             marker.Marker = markPen;
 
             amplitudePlotter.Children.Add(marker);
 
-            //marker = new MarkerPointsGraph(saccadeStartCompositeDataSource);
-            //marker.IsManipulationEnabled = true;
-            //var textMarker = new CenteredTextMarker();
-            //textMarker.Text = "TEST";
-            //marker.Marker = textMarker;
-            //amplitudePlotter.Children.Add(marker);
-
-            ApplyTextMarkers(saccadeStartCompositeDataSource, saccadeEndCompositeDataSource);
-
-            
-
-            marker = new MarkerPointsGraph(saccadeEndCompositeDataSource);
+            marker = new MarkerPointsGraph(saccadeEndDataSource);
             markPen = new CirclePointMarker();
             markPen.Pen = new Pen(Brushes.Gold, 1);
             markPen.Size = 6;
+            marker.Name = "SaccEnd";
             markPen.Fill = Brushes.Gold;
             marker.Marker = markPen;
 
             amplitudePlotter.Children.Add(marker);
 
-            amplitudePlotter.FitToView();
-
-
-            LogData(results);
-
-            //fit to view with margins
-            var yMargin = ((results.PlotData.Reye.Max() - results.PlotData.Reye.Min()) / 10);
-            var xMargin = ((results.PlotData.Stime.Max().TotalSeconds - results.PlotData.Stime.Min().TotalSeconds) / 20);
-
-            var xMin = results.PlotData.Stime.Min().TotalSeconds - xMargin;
-            var xMax = results.PlotData.Stime.Max().TotalSeconds + xMargin;
-            var yMin = results.PlotData.Reye.Min() - yMargin; 
-            var yMax = results.PlotData.Reye.Max() + yMargin;
-            amplitudePlotter.Viewport.Visible = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
         }
 
-        private void ApplyTextMarkers(CompositeDataSource startPoints, CompositeDataSource endPoints)
+
+        private void ApplySaccadeTextMarkers(List<double> arrayX, List<double> arrayY, string text)
         {
-            //for (int i = 0; i < startPoints.DataParts[0].; i++)
-            //{
+            for (int i = 0; i < arrayX.Count; i++)
+            {
+                var xDataSource = new EnumerableDataSource<double>(new double[1] { arrayX[i] });
+                xDataSource.SetXMapping(x => x);
+                var yDataSource = new EnumerableDataSource<double>(new double[1] { arrayY[i] });
+                yDataSource.SetYMapping(x => x);
 
-            //}
+                var saccadeStartCompositeDataSource = new CompositeDataSource(xDataSource, yDataSource);
+
+                var marker = new MarkerPointsGraph(saccadeStartCompositeDataSource);
+                var textMarker = new CenteredTextMarker();
+                textMarker.Text = $"{text} #{i}";
+                marker.Marker = textMarker;
+                marker.Name = $"Sacc{text}Label";
+                if (CBShowLabels.IsChecked == false)
+                {
+                    marker.Visibility = Visibility.Hidden;
+                }
+
+                amplitudePlotter.Children.Add(marker);
+            }
 
         }
 
-       
+        private void RemoveSaccadeMarkers()
+        {
+            var removeItems = new List<MarkerPointsGraph>();
 
-        private void LogData(SpotGainResults results)
+            foreach (var children in amplitudePlotter.Children)
+            {
+                if (children is MarkerPointsGraph)
+                {
+                    var marker = children as MarkerPointsGraph;
+                    if (marker.Name.Equals("SaccStartLabel") || marker.Name.Equals("SaccEndLabel") ||
+                        marker.Name.Equals("SaccStart") || marker.Name.Equals("SaccEnd"))
+                    {
+                        removeItems.Add(marker);
+                    }
+                }
+            }
+
+            foreach (var itemForRemoval in removeItems)
+            {
+                amplitudePlotter.Children.Remove(itemForRemoval);
+            }
+
+        }
+
+        private void ApplySaccadeControls(List<SaccadePosition> saccades)
+        {
+            SaccadeControlsPanel.Children.Clear();
+
+            foreach (var saccade in saccades)
+            {
+                var panel = GetSaccadeControl(saccade);
+                SaccadeControlsPanel.Children.Add(panel);
+            }
+        }
+
+        private StackPanel GetSaccadeControl(SaccadePosition saccade)
+        {
+            var itemPanel = new StackPanel();
+            itemPanel.Orientation = Orientation.Horizontal;
+            itemPanel.HorizontalAlignment = HorizontalAlignment.Right;
+            itemPanel.Margin = new Thickness(0, 10, 0, 0);
+            itemPanel.Tag = saccade.Id.ToString();
+            itemPanel.Name = "SaccPanel";
+
+            var saccLabel = new Label();
+            saccLabel.Content = $"#{saccade.Id}";
+
+            var controlPadding = new Thickness(2, 5, 2, 5);
+
+            var saccStartTB = new TextBox();
+            saccStartTB.Text = saccade.SaccadeStartIndex.ToString();
+            saccStartTB.Name = "TBSaccStart";
+            saccStartTB.Padding = controlPadding;
+            saccStartTB.VerticalAlignment = VerticalAlignment.Center;
+            saccStartTB.PreviewTextInput += NumberValidationTextBox;
+
+            var saccEndTB = new TextBox();
+            saccEndTB.Text = saccade.SaccadeEndIndex.ToString();
+            saccEndTB.Name = "TBSaccEnd";
+            saccEndTB.Padding = controlPadding;
+            saccEndTB.VerticalAlignment = VerticalAlignment.Center;
+            saccEndTB.PreviewTextInput += NumberValidationTextBox;
+
+            var removeButton = new Button();
+            removeButton.Content = "X";
+            //removeButton.FontWeight = FontWeights.Bold;
+            removeButton.Tag = saccade.Id;
+            removeButton.VerticalAlignment = VerticalAlignment.Center;
+            removeButton.Padding = controlPadding;
+            removeButton.Click += BtnRemoveEyeMove_Click;
+
+            itemPanel.Children.Add(saccLabel);
+            itemPanel.Children.Add(saccStartTB);
+            itemPanel.Children.Add(saccEndTB);
+            itemPanel.Children.Add(removeButton);
+
+            return itemPanel;
+        }
+
+        private void ReApplySaccades()
+        {
+            this.SaccadePositions = GetSaccadeParamsFromControls(this.SaccadePositions);
+            ApplySaccadeMarkersAndControls(SaccadePositions);
+            //Quick fix for first checkobox tick not rendering
+            RefreshGraphLabels(true);
+            //RefreshGraphLabels(false);
+        }
+
+        private List<SaccadePosition> GetSaccadeParamsFromControls(List<SaccadePosition> oldSaccadePositions)
+        {
+            var newSaccadePositions = new List<SaccadePosition>();
+
+            foreach (var children in SaccadeControlsPanel.Children)
+            {
+                if (children is StackPanel)
+                {
+                    var panel = children as StackPanel;
+                    if (panel.Name.Equals("SaccPanel"))
+                    {
+                        var saccId = int.Parse(panel.Tag.ToString());
+                        int saccStartIndex = -1;
+                        int saccEndIndex = -1;
+
+                        foreach (var panelChildren in panel.Children)
+                        {
+                            if (panelChildren is TextBox)
+                            {
+                                var textBox = panelChildren as TextBox;
+                                if (textBox.Name == "TBSaccStart")
+                                {
+                                    saccStartIndex = int.Parse(textBox.Text);
+                                }
+                                else if (textBox.Name == "TBSaccEnd")
+                                {
+                                    saccEndIndex = int.Parse(textBox.Text);
+                                }
+                            }
+                        }
+
+                        var prevoiusSaccadeItem = oldSaccadePositions.FirstOrDefault(x => x.Id == saccId);
+                        var saccItem = SaccadeDataHelper.GetSaccadePositionItem(saccId, saccStartIndex, saccEndIndex, prevoiusSaccadeItem.SpotStartIndex,
+                            prevoiusSaccadeItem.SpotStartTime, prevoiusSaccadeItem.SpotStartCoord, prevoiusSaccadeItem.SpotEndIndex, prevoiusSaccadeItem.SpotEndTime,
+                            prevoiusSaccadeItem.SpotEndCoord, CurrentResults);
+                        newSaccadePositions.Add(saccItem);
+                    }
+                }
+            }
+            return newSaccadePositions;
+        }
+
+
+
+
+        private void LogData(List<SaccadeCalculation> results)
         {
             var sb = new StringBuilder();
             var sep = "  ";
+            var rowSep = "====================================================";
+
+            sb.Append(rowSep);
+            sb.Append(Environment.NewLine);
             sb.Append($"Date/Time: {DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}");
             sb.Append(Environment.NewLine);
-            sb.Append($"Mean spot amplitude: {results.MeanSpotAmplitude}");
-            sb.Append(Environment.NewLine);
-            sb.Append("Spot amp shifts [ksp]:  ");
-            sb.Append(string.Join(" ; ", results.SpotOverAmpForSpotTimeStamps.Select(x => x.TotalSeconds.ToString()).ToArray()));
-            sb.Append(Environment.NewLine);
-            sb.Append("Left eye amp shifts [kle]: ");
-            sb.Append(string.Join(" ; ", results.LEyeEarliestOverAmpForSpotTimeStamps.Select(x => x.TotalSeconds.ToString()).ToArray()));
-            sb.Append(Environment.NewLine);
-            sb.Append("Right eye amp shifts [kre]: ");
-            sb.Append(string.Join(" ; ", results.REyeEarliestOverAmpForSpotTimeStamps.Select(x => x.TotalSeconds.ToString()).ToArray()));
-            sb.Append(Environment.NewLine);
-            sb.Append(Environment.NewLine);
-            sb.Append("Right eye delays (sec) [tre2]: ");
-            sb.Append(string.Join(" ; ", results.DelaysRe.Select(x => x.ToString()).ToArray()));
-            sb.Append(Environment.NewLine);
-            sb.Append($"Right eye delay mean: {results.MeanDelayRe} (+/- {results.StdDelayRe} SD)");
-            sb.Append(Environment.NewLine);
-            sb.Append("Left eye delays (sec) [tle2]: ");
-            sb.Append(string.Join(" ; ", results.DelaysLe.Select(x => x.ToString()).ToArray()));
-            sb.Append(Environment.NewLine);
-            sb.Append($"Left eye delay mean: {results.MeanDelayLe} (+/- {results.StdDelayLe} SD)");
-            sb.Append(Environment.NewLine);
-            sb.Append(Environment.NewLine);
-            sb.Append("Right eye durations (sec) [rdur]: ");
-            sb.Append(string.Join(" ; ", results.DurationsRe.Select(x => x.ToString()).ToArray()));
-            sb.Append(Environment.NewLine);
-            sb.Append($"Right eye duration mean: {results.MeanDurationRe} (+/- {results.StdDurationRe} SD)");
-            sb.Append(Environment.NewLine);
-            sb.Append("Left eye durations (sec) [ldur]: ");
-            sb.Append(string.Join(" ; ", results.DurationsRe.Select(x => x.ToString()).ToArray()));
-            sb.Append(Environment.NewLine);
-            sb.Append($"Left eye duration mean: {results.MeanDurationLe} (+/- {results.StdDurationLe} SD)");
-            sb.Append(Environment.NewLine);
-            sb.Append(Environment.NewLine);
-            sb.Append("Left eye max speed time [sple_t]: ");
-            sb.Append(string.Join(" ; ", results.MaxSpeedTimesLe.Select(x => x.ToString()).ToArray()));
-            sb.Append(Environment.NewLine);
-            sb.Append("Left eye max speed amp [sple]: ");
-            sb.Append(string.Join(" ; ", results.MaxSpeedAmpsLe.Select(x => x.ToString()).ToArray()));
-            sb.Append(Environment.NewLine);
-            sb.Append("Right eye max speed time [spre_t]: ");
-            sb.Append(string.Join(" ; ", results.MaxSpeedTimesRe.Select(x => x.ToString()).ToArray()));
-            sb.Append(Environment.NewLine);
-            sb.Append("Right eye max speed amp [sple]: ");
-            sb.Append(string.Join(" ; ", results.MaxSpeedAmpsRe.Select(x => x.ToString()).ToArray()));
-            sb.Append(Environment.NewLine);
-            sb.Append("==============================");
+            sb.Append(rowSep);
             sb.Append(Environment.NewLine);
             sb.Append(Environment.NewLine);
 
-            LogTextBox.Text += sb.ToString();
+
+
+            foreach (var result in results)
+            {
+                sb.Append($"Saccade Id: {result.Id}");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Spot Start Index: {result.SpotStartIndex}");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Spot End Index: {result.SpotEndIndex}");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Eye Start Index: {result.EyeStartIndex}");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Eye End Index: {result.EyeEndIndex}");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Frame Count: {result.FrameCount}");
+                sb.Append(Environment.NewLine);
+
+                sb.Append("Y Values:");
+                sb.Append(Environment.NewLine);
+                for (int i = result.EyeStartIndex; i < result.EyeStartIndex + result.FrameCount; i++)
+                {
+                    sb.Append($"Index:{i} - Value: {CurrentResults.PlotData.RightEyeCoords[i]}");
+                    sb.Append(Environment.NewLine);
+                }
+
+
+                sb.Append("X Values:");
+                sb.Append(Environment.NewLine);
+                for (int i = result.EyeStartIndex; i < result.EyeStartIndex + result.FrameCount; i++)
+                {
+                    sb.Append($"Index:{i} - Time: {CurrentResults.PlotData.TimeStamps[i]}");
+                    sb.Append(Environment.NewLine);
+                }
+
+                sb.Append(Environment.NewLine);
+                sb.Append($"Eye/Spot Gain: {result.Gain} ");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Distance: {result.Distance} cm");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Latency: {result.Latency} sec");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Duration: {result.Duration} sec");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Visual Angle: {result.Amplitude} deg");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Velocity: {result.Velocity} deg/sec");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Average Velocity: {result.AvgVelocity} deg/sec");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Max Velocity: {result.MaxVelocity} deg/sec");
+                sb.Append(Environment.NewLine);
+                sb.Append(Environment.NewLine);
+            }
+
+
+            var currentText = sb.ToString() + LogTextBox.Text.ToString();
+            LogTextBox.Text = currentText;
         }
 
-        private void PrintCharts(Dictionary<string, List<SeriesItem>> dataSeries)
-        {
-            IPointDataSource _eds = null;
-            LineGraph line;
-            EnumerableDataSource<SeriesItem> _edsSPP;
-            _edsSPP = new EnumerableDataSource<SeriesItem>(dataSeries[SeriesNames.Amplitude.ToString()]);
-            _edsSPP.SetXMapping(p => p.Timepoint);
-            _edsSPP.SetYMapping(p => p.Value);
-            _eds = _edsSPP;
-            line = new LineGraph(_eds);
-            line.LinePen = new Pen(Brushes.Red, 1);
-            
 
-            amplitudePlotter.Children.Add(line);
-            amplitudePlotter.FitToView();
-
-            //_edsSPP = new EnumerableDataSource<SeriesItem>(dataSeries[SeriesNames.XCoordinate.ToString()]);
-            //_edsSPP.SetXMapping(p => p.Timepoint);
-            //_edsSPP.SetYMapping(p => p.Value);
-            //_eds = _edsSPP;
-            //line = new LineGraph(_eds);
-            //line.LinePen = new Pen(Brushes.Red, 1);
-            //Legend.SetDescription(line, "X Coordinate");
-            //xyPlotter.Children.Add(line);
-
-            //_edsSPP = new EnumerableDataSource<SeriesItem>(dataSeries[SeriesNames.YCoordinate.ToString()]);
-            //_edsSPP.SetXMapping(p => p.Timepoint);
-            //_edsSPP.SetYMapping(p => p.Value);
-            //_eds = _edsSPP;
-            //line = new LineGraph(_eds);
-            //line.LinePen = new Pen(Brushes.Blue, 1);
-            //Legend.SetDescription(line, "Y Coordinate");
-            //xyPlotter.Children.Add(line);
-
-
-            //xyPlotter.FitToView();
-        }
 
         public void ClearLines()
         {
-            
+
             var lgc = new Collection<IPlotterElement>();
             foreach (var x in amplitudePlotter.Children)
             {
@@ -486,7 +584,7 @@ namespace GazeDataViewer
 
             }
 
-           
+
         }
 
         private void NumberValidationTextBox(object sender, TextCompositionEventArgs e)
@@ -516,30 +614,15 @@ namespace GazeDataViewer
             }
         }
 
-       
-        private void CBEvalStart_Click(object sender, RoutedEventArgs e)
-        {
-            if(!CBEvalStart.IsChecked.GetValueOrDefault())
-            {
-                TBStartRec.IsEnabled = true;
-                TBStartRec.Text = "0";
-            }
-            else
-            {
-                TBStartRec.IsEnabled = false;
-                TBStartRec.Text = string.Empty;
-            }
-        
-        }
 
-       
+
+
+
 
         private void ButtonCalculate_Click(object sender, RoutedEventArgs e)
         {
             var calcConfig = GetCurrentCalcConfig();
             Analyze(this.FileData, calcConfig);
-            
-
         }
 
         private CalcConfig GetCurrentCalcConfig()
@@ -549,22 +632,19 @@ namespace GazeDataViewer
             int eyeShiftPeriod;
             int spotShiftPeriod;
             double ampProp;
-            double delayWindowLargerThan;
-            double delayWindowSmallerThan;
             int reduceEyeSpotAmpDiff;
+            int saccadeEndShiftPeroid;
 
-            if (!CBEvalStart.IsChecked.GetValueOrDefault())
+            var isRecStart = int.TryParse(TBStartRec.Text, out recStart);
+            if (isRecStart)
             {
-                var isRecStart = int.TryParse(TBStartRec.Text, out recStart);
-                if (isRecStart)
-                {
-                    calcConfig.RecStart = recStart;
-                }
-                else
-                {
-                    MessageBox.Show($"Wrong value of 'Start Rec'. Should be int.");
-                }
+                calcConfig.RecStart = recStart;
             }
+            else
+            {
+                MessageBox.Show($"Wrong value of 'Start Rec'. Should be int.");
+            }
+
 
             var isEyeShiftPeriod = int.TryParse(TBEyeShiftPeroid.Text, out eyeShiftPeriod);
             if (isEyeShiftPeriod)
@@ -586,6 +666,16 @@ namespace GazeDataViewer
                 MessageBox.Show($"Wrong value of 'Spot Shift Period'. Should be int.");
             }
 
+            var isSaccadeEndShiftPeroid = int.TryParse(TBSaccadeEndShiftPeroid.Text, out saccadeEndShiftPeroid);
+            if (isSaccadeEndShiftPeroid)
+            {
+                calcConfig.SaccadeEndShiftPeroid = saccadeEndShiftPeroid;
+            }
+            else
+            {
+                MessageBox.Show($"Wrong value of 'Saccade End Shift Peroid'. Should be int.");
+            }
+
             var isReduceEyeSpotAmpDiff = int.TryParse(TBReduceEyeSpotAmpDiff.Text, out reduceEyeSpotAmpDiff);
             if (isReduceEyeSpotAmpDiff)
             {
@@ -605,28 +695,6 @@ namespace GazeDataViewer
             {
                 MessageBox.Show($"Wrong value of 'Amp Prop'. Should be double (decimal).");
             }
-
-            var isDelayWindowLargerThan = double.TryParse(TBDelayWindowLargerThan.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out delayWindowLargerThan);
-            if (isDelayWindowLargerThan)
-            {
-                calcConfig.DelayWindowLargerThan = delayWindowLargerThan;
-            }
-            else
-            {
-                MessageBox.Show($"Wrong value of 'Delay Window Larger Than' Should be double (decimal).");
-            }
-
-            var isDelayWindowSmallerThan = double.TryParse(TBDelayWindowSmallerThan.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out delayWindowSmallerThan);
-            if (isDelayWindowSmallerThan)
-            {
-                calcConfig.DelayWindowSmallerThan = delayWindowSmallerThan;
-            }
-            else
-            {
-                MessageBox.Show($"Wrong value of 'Delay Window Smaller Than' Should be double (decimal).");
-            }
-
-            calcConfig.CalcateRecStart = CBEvalStart.IsChecked.GetValueOrDefault();
 
             return calcConfig;
 
@@ -661,5 +729,118 @@ namespace GazeDataViewer
                 MessageBox.Show("File name empty or extention not allowed (only csv and txt).");
             }
         }
+
+        private void CBShowLabels_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshGraphLabels(CBShowLabels.IsChecked.GetValueOrDefault());
+        }
+
+
+        private void RefreshGraphLabels(bool isChecked)
+        {
+            if (isChecked == true)
+            {
+                foreach (var children in amplitudePlotter.Children)
+                {
+                    if (children is MarkerPointsGraph)
+                    {
+                        var marker = children as MarkerPointsGraph;
+                        if (marker.Name.Equals("SaccStartLabel") || marker.Name.Equals("SaccEndLabel"))
+                        {
+                            marker.Visibility = Visibility.Visible;
+
+                        }
+                    }
+                }
+            }
+            else
+            {
+                foreach (var children in amplitudePlotter.Children)
+                {
+                    if (children is MarkerPointsGraph)
+                    {
+                        var marker = children as MarkerPointsGraph;
+                        if (marker.Name.Equals("SaccStartLabel") || marker.Name.Equals("SaccEndLabel"))
+                        {
+                            marker.Visibility = Visibility.Hidden;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void BtnApply_Click(object sender, RoutedEventArgs e)
+        {
+            ReApplySaccades();
+        }
+
+        private void BtnSaccadeCalc_Click(object sender, RoutedEventArgs e)
+        {
+
+            var distanceFromScreen = int.Parse(TBDistanceFromScreen.Text);
+            var frequency = int.Parse(TBFrequency.Text);
+            var saccCalculator = new SaccadeParamsCalcuator(SaccadePositions, CurrentResults.PlotData.RightEyeCoords,
+                CurrentResults.PlotData.SpotCoords, distanceFromScreen, frequency);
+            var results = saccCalculator.Calculate();
+            LogData(results);
+        }
+
+        private void BtnAddEyeMove_Click(object sender, RoutedEventArgs e)
+        {
+            var eyeStartIndex = 0;
+            var spotStartIndex = eyeStartIndex;
+            var eyeShift = int.Parse(TBEyeShiftPeroid.Text);
+            var saccadEndShiftPeroid = int.Parse(TBSaccadeEndShiftPeroid.Text);
+            var spotShiftIndex = SaccadeDataHelper.CountSpotShiftIndex(spotStartIndex, eyeShift);
+            var eyeMoveEndIndex = SaccadeDataHelper.CountEyeShiftIndex(eyeStartIndex, eyeShift, saccadEndShiftPeroid);
+
+            var newSaccades = new List<SaccadePosition>();
+
+            var currentId = 0;
+            newSaccades.Add(new SaccadePosition
+            {
+                Id = currentId,
+                SaccadeStartIndex = eyeStartIndex,
+                SaccadeStartCoord = CurrentResults.PlotData.RightEyeCoords[eyeStartIndex],
+                SaccadeStartTime = CurrentResults.PlotData.TimeStamps[eyeStartIndex],
+
+                SaccadeEndIndex = eyeMoveEndIndex,
+                SaccadeEndCoord = CurrentResults.PlotData.RightEyeCoords[eyeMoveEndIndex],
+                SaccadeEndTime = CurrentResults.PlotData.TimeStamps[eyeMoveEndIndex],
+
+                SpotStartIndex = spotStartIndex,
+                SpotStartCoord = CurrentResults.PlotData.SpotCoords[spotStartIndex],
+                SpotStartTime = CurrentResults.PlotData.TimeStamps[spotStartIndex],
+
+                SpotEndIndex = spotShiftIndex,
+                SpotEndCoord = CurrentResults.PlotData.SpotCoords[spotShiftIndex],
+                SpotEndTime = CurrentResults.PlotData.TimeStamps[spotShiftIndex]
+            });
+
+            currentId++;
+            foreach (var saccade in this.SaccadePositions)
+            {
+                saccade.Id = currentId;
+                newSaccades.Add(saccade);
+                currentId++;
+            };
+
+            this.SaccadePositions = newSaccades;
+            ApplySaccadeMarkersAndControls(this.SaccadePositions);
+        }
+
+        private void BtnRemoveEyeMove_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button)
+            {
+                var button = sender as Button;
+                var saccadeId = Convert.ToInt32(button.Tag);
+                var saccadeForRemove = this.SaccadePositions.First(x => x.Id == saccadeId);
+                this.SaccadePositions.Remove(saccadeForRemove);
+                ApplySaccadeMarkersAndControls(this.SaccadePositions);
+            }
+        }
     }
 }
+
+    

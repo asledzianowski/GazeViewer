@@ -109,7 +109,7 @@ namespace GazeDataViewer.Classes
             return gazeDataItems;
         }
 
-        public static SpotGazeFileData LoadDataForSpotAndGaze(string filePath)
+        public static SpotGazeFileData LoadDataForSpotAndGaze(string filePath, int timeColumnIndex, int eyeColumnIndex, int spotColumnIndex)
         {
             var fileInfo = new FileInfo(filePath);
             var fileStream = fileInfo.OpenRead();
@@ -124,27 +124,27 @@ namespace GazeDataViewer.Classes
                 var lineColumns = lines[i].Split(' '); //;
                 if (lineColumns.Length >= 4) //4
                 {
-                    var isTimeConverted = int.TryParse(lineColumns[0], out outputData.Time[i]);
+                    var isTimeConverted = int.TryParse(lineColumns[timeColumnIndex], out outputData.Time[i]);
                     //var isTimeConverted = DateTime.TryParseExact(lineColumns[0], "yyyy-MM-dd HH:mm:ss.FFF",
                       //                  CultureInfo.InvariantCulture, DateTimeStyles.None, out outputData.Time[i]);
 
-                    float lEye; 
-                    float rEye;
-                    float spot;
-                    var isLEyeConverted = float.TryParse(lineColumns[1], NumberStyles.Any, CultureInfo.InvariantCulture, out lEye);
-                    var isREyeConverted = float.TryParse(lineColumns[2], NumberStyles.Any, CultureInfo.InvariantCulture, out rEye); //3
-                    var isSopotConverted = float.TryParse(lineColumns[3], NumberStyles.Any, CultureInfo.InvariantCulture, out spot); //5
+                    //double lEye;
+                    double rEye;
+                    double spot;
+                    //var isLEyeConverted = double.TryParse(lineColumns[1], NumberStyles.Any, CultureInfo.InvariantCulture, out lEye);
+                    var isREyeConverted = double.TryParse(lineColumns[eyeColumnIndex], NumberStyles.Any, CultureInfo.InvariantCulture, out rEye); //3
+                    var isSopotConverted = double.TryParse(lineColumns[spotColumnIndex], NumberStyles.Any, CultureInfo.InvariantCulture, out spot); //5
 
-                    if (!isTimeConverted || !isLEyeConverted || !isREyeConverted || !isSopotConverted)
+                    if (!isTimeConverted || /*!isLEyeConverted ||*/ !isREyeConverted || !isSopotConverted)
                     {
                         MessageBox.Show("Invalid format in input file at line " + i);
                         break;
                     }
                     else
                     {
-                        outputData.LEye[i] = lEye;
-                        outputData.REye[i] = rEye;
-                        outputData.Spot[i] = spot;
+                        //outputData.LEye[i] = Math.Round(lEye, 3);
+                        outputData.REye[i] = Math.Round(rEye, 3);
+                        outputData.Spot[i] = Math.Round(spot, 3);
 
                     }
                 }

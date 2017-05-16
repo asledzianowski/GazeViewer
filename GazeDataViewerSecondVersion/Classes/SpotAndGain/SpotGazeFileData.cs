@@ -10,20 +10,20 @@ namespace GazeDataViewer.Classes.SpotAndGain
     {
         public int[] Time { get; }
 
-        public float[] LEye { get; }
+        //public double[] LEye { get; }
 
-        public float[] REye { get; }
+        public double[] REye { get; }
 
-        public float[] Spot { get; }
+        public double[] Spot { get; }
 
         public int originalLenght { get; }
 
         public SpotGazeFileData(int lenght)
         {
             Time = new int[lenght];
-            LEye = new float[lenght];
-            REye = new float[lenght];
-            Spot = new float[lenght];
+            //LEye = new double[lenght];
+            REye = new double[lenght];
+            Spot = new double[lenght];
             originalLenght = lenght;
         }
     }

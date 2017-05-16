@@ -46,7 +46,6 @@ D:\Development\TheEyeTribeSDK\GazeDataViewerSecondVersion\GazeDataViewerSecondVe
 D:\Development\TheEyeTribeSDK\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\bin\Debug\DynamicDataDisplay.Markers.dll
 D:\Development\TheEyeTribeSDK\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\bin\Debug\DynamicDataDisplay.Markers2.dll
 D:\Development\TheEyeTribeSDK\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\bin\Debug\Parser.dll
-D:\Development\TheEyeTribeSDK\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\obj\Debug\GazeDataViewer.csprojResolveAssemblyReference.cache
 D:\Development\TheEyeTribeSDK\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\obj\Debug\MainWindow.g.cs
 D:\Development\TheEyeTribeSDK\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\obj\Debug\App.g.cs
 D:\Development\TheEyeTribeSDK\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\obj\Debug\GazeDataViewer_MarkupCompile.cache
@@ -56,3 +55,4 @@ D:\Development\TheEyeTribeSDK\GazeDataViewerSecondVersion\GazeDataViewerSecondVe
 D:\Development\TheEyeTribeSDK\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\obj\Debug\GazeDataViewer.Properties.Resources.resources
 D:\Development\TheEyeTribeSDK\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\obj\Debug\GazeDataViewer.csproj.GenerateResource.Cache
 D:\Development\TheEyeTribeSDK\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\bin\Debug\AltaxoCore.dll
+D:\Development\TheEyeTribeSDK\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\obj\Debug\GazeDataViewer.csprojResolveAssemblyReference.cache
