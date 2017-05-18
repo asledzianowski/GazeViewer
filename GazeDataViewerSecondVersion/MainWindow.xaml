@@ -33,8 +33,8 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-
-                <DockPanel Grid.Column="0" Grid.Row="0" HorizontalAlignment="Left" Background="LightGray" Width="Auto" Height="26">
+               
+                    <DockPanel Grid.Column="0" Grid.Row="0" HorizontalAlignment="Left" Background="LightGray" Width="Auto" Height="26">
                     <Label Content="Distance From Screen:"></Label>
                     <TextBox Name="TBDistanceFromScreen" Width="32" Height="20" Text="30" PreviewTextInput="NumberValidationTextBox"
                         VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
@@ -55,7 +55,7 @@
                     <TextBox Name="TBSpotColumnIndex" Width="32" Height="20" Margin="0,0,0,0" Text="3" PreviewTextInput="NumberValidationTextBox"
                         VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                 </DockPanel>
-
+                
                 <DockPanel Grid.Column="1" Grid.Row="0" HorizontalAlignment="Right" Background="LightGray" Width="Auto" Height="26">
 
                     <TextBox Name="LoadDataPathTextBox" Width="400" Height="26"/>
@@ -63,23 +63,26 @@
                 </DockPanel>
             </Grid>
 
+            <Grid Grid.Row="1" Margin="10,0,10,0"  >
+                <d3:ChartPlotter Name="amplitudePlotter" Background="White"  >
+                    <d3:ChartPlotter.MainHorizontalAxis>
+                        <d3:HorizontalIntegerAxis Name="timeAxis" />
+                    </d3:ChartPlotter.MainHorizontalAxis>
+                    <d3:ChartPlotter.MainVerticalAxis>
+                        <d3:VerticalAxis Name="valueAxis"/>
+                    </d3:ChartPlotter.MainVerticalAxis>
 
-            <d3:ChartPlotter Grid.Row="1" Name="amplitudePlotter" Background="White"  Margin="10,0,10,0" >
-                <d3:ChartPlotter.MainHorizontalAxis>
-                    <d3:HorizontalIntegerAxis Name="timeAxis" />
-                </d3:ChartPlotter.MainHorizontalAxis>
-                <d3:ChartPlotter.MainVerticalAxis>
-                    <d3:VerticalAxis Name="valueAxis"/>
-                </d3:ChartPlotter.MainVerticalAxis>
-               
-                <d3:Header Content="Spot/Gaze Track"/>
-                <d3:VerticalAxisTitle Content="Value"/>
-                <d3:HorizontalAxisTitle Content="Time"/>
-            </d3:ChartPlotter>
+                    <d3:Header Content="Spot/Gaze Track"/>
+                    <d3:VerticalAxisTitle Content="Value"/>
+                    <d3:HorizontalAxisTitle Content="Time"/>
+                </d3:ChartPlotter>
+            </Grid>
+           
 
-            <Grid Grid.Row="2" Margin="10,10,10,10" Background="LightGray"  >
+            <Grid Name="ControlGrid" Grid.Row="2" Margin="0,10,0,0" Background="LightGray"  >
 
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
@@ -88,116 +91,235 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBox Grid.Column="0" Grid.Row="0"  Height="200"  Name="LogTextBox" Width="450" Margin="40,0,0,0"
+                <GroupBox Header="Results Log" Name="GBTextOutput" HorizontalAlignment="Right" Margin="10,5,0,0" IsEnabled="False"
+                  VerticalAlignment="Top" Width="Auto" Grid.Column="0" Grid.Row="0">
+                    <TextBox   Height="190"  Name="LogTextBox" Width="362" 
                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" ></TextBox>
+                </GroupBox>
 
-                <Grid Grid.Column="1" Grid.Row="1" Width="Auto" HorizontalAlignment="Right" VerticalAlignment="Top" >
+                <Grid  Grid.Row="1" Grid.Column="1" >
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
 
-                    <Button Name="BtnSaccadeCalc" Content="Calculate" Height="24" Margin="0,0,0,5" IsEnabled="False"
-                             Grid.Row="0" Grid.Column="0" Click="BtnSaccadeCalc_Click"></Button>
-                    <Button Name="BtnAddEyeMove" Content="Add" Height="24" Margin="0,0,0,5" IsEnabled="False"
-                            Click="BtnAddEyeMove_Click" Grid.Row="0" Grid.Column="1"></Button>
-                    <Button Name="BtnApply" Content="Apply" Height="24" Margin="0,0,0,5" IsEnabled="False"
-                            Click="BtnApply_Click" Grid.Row="0" Grid.Column="2"></Button>
-                    <ScrollViewer Grid.Row="1" Grid.ColumnSpan="3"  VerticalScrollBarVisibility="Visible" Width="150" Height="180">
-                        <UniformGrid Name="SaccadeControlsPanel" HorizontalAlignment="Center" VerticalAlignment="Top" Columns="1" Margin="0,0,10,0"  >
+                    <GroupBox Header="Graph" Name="GBGraph" HorizontalAlignment="Right" Margin="10,5,0,10" Padding="0,0,0,0" IsEnabled="False"
+                  VerticalAlignment="Top" Width="Auto" Height="Auto" Grid.Row="0" >
+                        <Grid  Width="Auto" HorizontalAlignment="Left" VerticalAlignment="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                        </UniformGrid>
-                    </ScrollViewer>
+                            <Label Grid.Column="0" Grid.Row="0" Content="Show Labels:" HorizontalAlignment="Right"  ></Label>
+                            <CheckBox Grid.Column="1" Grid.Row="0" Name="CBShowLabels" IsChecked="False" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                  Click="CBShowLabels_Click"></CheckBox>
+                            <Label Grid.Column="0" Grid.Row="1" Content="Fix View:" HorizontalAlignment="Right"  ></Label>
+                            <CheckBox Grid.Column="1" Grid.Row="1" Name="CBFixView" IsChecked="False" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                  ></CheckBox>
+                         
+
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox Header="Results" Name="GBResults" HorizontalAlignment="Right" Margin="10,5,0,10" Padding="0,0,0,0" IsEnabled="False"
+                  VerticalAlignment="Top" Width="Auto" Height="Auto" Grid.Row="1" >
+                        <Grid  Width="90" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="2,2,2,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Button Name="BtnSaccadeCalc" Content="Calculate" Height="24" Margin="0,0,0,0" 
+                                 Grid.Row="0" Grid.Column="0" Click="BtnSaccadeCalc_Click"></Button>
+                            <Button Name="BtnClearResults"  Content="Clear Results" Height="24" Margin="0,0,0,0" 
+                                 Grid.Row="1" Grid.Column="0" Click="BtnClearResults_Click"></Button>
+                            <Button Name="BtnSaveResults" Content="Save Results" Height="24" Margin="0,0,0,0" 
+                                 Grid.Row="2" Grid.Column="0"  Click="BtnSaveResults_Click"></Button>
+                            <Button Name="BtnScreenShot" Content="Save Graph" Height="24" Margin="0,0,0,0" 
+                                 Grid.Row="3" Grid.Column="0"  Click="BtnSaveScreenShot_Click"></Button>
+
+                        </Grid>
+                    </GroupBox>
+
                 </Grid>
 
+              
+
+                <GroupBox Grid.Column="2" Grid.Row="1" Header="Eye Moves" Name="GBEyeMoves" HorizontalAlignment="Left" Margin="10,5,10,0" IsEnabled="False"
+                  VerticalAlignment="Top" Height="Auto" Width="Auto" >
+                    <Grid   Width="Auto" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="2,2,2,2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                       
+                        <Button Name="BtnAddEyeMove" Content="Add" Height="24" Margin="0,10,0,5" 
+                                Click="BtnAddEyeMove_Click" Grid.Row="0" Grid.Column="0"></Button>
+                        <Button Name="BtnApply" Content="Apply" Height="24" Margin="0,10,0,5" 
+                                Click="BtnApply_Click" Grid.Row="0" Grid.Column="1"></Button>
+                        <ScrollViewer Grid.Row="1" Grid.ColumnSpan="2"  VerticalScrollBarVisibility="Visible" Width="140" Height="134" Margin="0,5,0,10" >
+                            <UniformGrid Name="SaccadeControlsPanel" HorizontalAlignment="Center" VerticalAlignment="Top" Columns="1" Margin="0,0,10,0"  >
+
+                            </UniformGrid>
+                        </ScrollViewer>
+                    </Grid>
+                </GroupBox>
 
 
-                <Grid Grid.Column="2" Grid.Row="0" Width="Auto" HorizontalAlignment="Right" >
+                <Grid Grid.Column="3" Grid.Row="0" Width="Auto" HorizontalAlignment="Right" Margin="0,0,10,0" >
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="44"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="44"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="44"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="44"/>
+                        <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
 
-                    <!--Row 0-->
+                    <GroupBox Header="Filters" Name="GBFilters" HorizontalAlignment="Left" Margin="0,5,0,0" IsEnabled="False"
+                  VerticalAlignment="Top" Height="Auto" Width="Auto" Grid.Row="0" Grid.Column="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="44"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="44"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="44"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="44"/>
 
-                    <Label Grid.Column="0" Grid.Row="0" Content="Show Labels:" HorizontalAlignment="Right" ></Label>
-                    <CheckBox Grid.Column="1" Grid.Row="0" Name="CBShowLabels" IsChecked="False" VerticalAlignment="Center" HorizontalAlignment="Center"
-                              Click="CBShowLabels_Click"></CheckBox>
+                               
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                    
-                  
-                    <Label Grid.Column="0" Grid.Row="1" Content="Savitzky–Golay:" HorizontalAlignment="Right" ></Label>
-                    <CheckBox Grid.Column="1" Grid.Row="1" Name="CBDenoise" IsChecked="False" VerticalAlignment="Center" HorizontalAlignment="Center"></CheckBox>
-                    <Label Grid.Column="2" Grid.Row="1" Content="Points:" HorizontalAlignment="Right"></Label>
-                    <TextBox Grid.Column="3" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="10" PreviewTextInput="NumberValidationTextBox" 
+                           
+
+                            <Label Grid.Column="0" Grid.Row="0" Content="Butterworth:" HorizontalAlignment="Right" ></Label>
+                            <CheckBox Grid.Column="1" Grid.Row="0" Name="CBFilterButterworth" IsChecked="False" VerticalAlignment="Center" HorizontalAlignment="Center"></CheckBox>
+                            <ComboBox Grid.Column="2"  Grid.Row="0" Name="ComboFilterTypeButterworth" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Height="26"  Width="140" Loaded="ComboBox_Loaded"/>
+
+                            <Label Grid.Column="4" Grid.Row="0" Content="Frequency:" HorizontalAlignment="Right"></Label>
+                            <TextBox Grid.Column="5" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="2" PreviewTextInput="DecimalValidationTextBox" 
+                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBButterWorthFrequency"></TextBox>
+                            <Label Grid.Column="6" Grid.Row="0" Content="Sample Rate:" HorizontalAlignment="Right"></Label>
+                            <TextBox Grid.Column="7" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="60" PreviewTextInput="NumberValidationTextBox" 
+                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBButterWorthSampleRate"></TextBox>
+                            <Label Grid.Column="6" Grid.Row="1" Content="Resonance:" HorizontalAlignment="Right"></Label>
+                            <TextBox Grid.Column="7" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="1" PreviewTextInput="DecimalValidationTextBox" 
+                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBButterWorthResonance"></TextBox>
+
+                           
+
+                            <Label Grid.Column="0" Grid.Row="2" Content="Savitzky–Golay:" HorizontalAlignment="Right" ></Label>
+                            <CheckBox Grid.Column="1" Grid.Row="2" Name="CBFilterSavGolay" IsChecked="False" VerticalAlignment="Center" HorizontalAlignment="Center"></CheckBox>
+                            <Label Grid.Column="2" Grid.Row="2" Content="Points Number:" HorizontalAlignment="Right"></Label>
+                            <TextBox Grid.Column="3" Grid.Row="2" Width="44" HorizontalAlignment="Left" Text="10" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSavGoayPointsNum"></TextBox>
-                    <Label Grid.Column="4" Grid.Row="1" Content="Derivative:" HorizontalAlignment="Right"></Label>
-                    <TextBox Grid.Column="5" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="0" PreviewTextInput="NumberValidationTextBox" 
+                            <Label Grid.Column="4" Grid.Row="2" Content="Derivative Ord:" HorizontalAlignment="Right"></Label>
+                            <TextBox Grid.Column="5" Grid.Row="2" Width="44" HorizontalAlignment="Left" Text="0" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSavGoayDerivOrder"></TextBox>
-                    <Label Grid.Column="6" Grid.Row="1" Content="Polynominal:" HorizontalAlignment="Right"></Label>
-                    <TextBox Grid.Column="7" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="4" PreviewTextInput="NumberValidationTextBox" 
+                            <Label Grid.Column="6" Grid.Row="2" Content="Polynominal Ord:" HorizontalAlignment="Right"></Label>
+                            <TextBox Grid.Column="7" Grid.Row="2" Width="44" HorizontalAlignment="Left" Text="4" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSavGoayPolyOrder"></TextBox>
+                        </Grid>
+                       
+                    </GroupBox>
 
-                    <!--Row 1-->
-                  
-                    <Label Grid.Column="0" Grid.Row="2" Content="Start Rec. Index:" HorizontalAlignment="Right"></Label>
-                    <TextBox Grid.Column="1" Grid.Row="2" Width="44" HorizontalAlignment="Left" Text="5000" PreviewTextInput="NumberValidationTextBox" 
+                    <GroupBox Header="Predictions" Name="GBPredictions" HorizontalAlignment="Right" Margin="0,10,0,0" IsEnabled="False"
+                  VerticalAlignment="Top" Width="Auto" Grid.Row="1" Grid.Column="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="44"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="44"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="44"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="44"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+
+                            </Grid.RowDefinitions>
+
+                            <Label Grid.Column="0" Grid.Row="0" Content="Start Rec. Index:" HorizontalAlignment="Right"></Label>
+                            <TextBox Grid.Column="1" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="5000" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBStartRec"
                              ></TextBox>
 
-                    <Label Grid.Column="2" Grid.Row="2" Content="End Rec. Index:" HorizontalAlignment="Right"></Label>
-                    <TextBox Grid.Column="3" Grid.Row="2" Width="44" HorizontalAlignment="Left" Text="" PreviewTextInput="NumberValidationTextBox" 
+                            <Label Grid.Column="2" Grid.Row="0" Content="End Rec. Index:" HorizontalAlignment="Right"></Label>
+                            <TextBox Grid.Column="3" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBEndRec"
                              ></TextBox>
 
-                   
-                    <Label Grid.Column="4" Grid.Row="2" Content="Eye Shift:" HorizontalAlignment="Right" ></Label>
-                    <TextBox Grid.Column="5" Grid.Row="2" Width="44" HorizontalAlignment="Left" Text="1" PreviewTextInput="NumberValidationTextBox" 
+
+                            <Label Grid.Column="4" Grid.Row="0" Content="Spot/Eye Shift:" HorizontalAlignment="Right" ></Label>
+                            <TextBox Grid.Column="5" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="1" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBEyeShiftPeroid"></TextBox>
 
-                    <Label Grid.Column="6" Grid.Row="2" Content="Spot Shift:" HorizontalAlignment="Right"></Label>
-                    <TextBox Grid.Column="7" Grid.Row="2" Width="44" HorizontalAlignment="Left" Text="-1" PreviewTextInput="NumberValidationTextBox" 
+                            <Label Grid.Column="6" Grid.Row="0" Content="Spot Start:" HorizontalAlignment="Right"></Label>
+                            <TextBox Grid.Column="7" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="-1" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSpotShiftPeroid"></TextBox>
 
-                    <!--Row 2-->
+                            <!--Row 2-->
 
-                    <Label Grid.Column="2" Grid.Row="3" Content="End Point Shift:" HorizontalAlignment="Right"></Label>
-                    <TextBox Grid.Column="3" Grid.Row="3" Width="44" HorizontalAlignment="Left" Text="1" PreviewTextInput="NumberValidationTextBox" 
+                            <Label Grid.Column="0" Grid.Row="1" Content="Eye Start Shift:" HorizontalAlignment="Right"></Label>
+                            <TextBox Grid.Column="1" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="2" PreviewTextInput="NumberValidationTextBox" 
+                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSaccadeStartShiftPeroid"></TextBox>
+
+                            <Label Grid.Column="2" Grid.Row="1" Content="Eye End Shift:" HorizontalAlignment="Right"></Label>
+                            <TextBox Grid.Column="3" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="1" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSaccadeEndShiftPeroid"></TextBox>
 
-                    <Label Grid.Column="4" Grid.Row="3" Content="Amp Prop:" HorizontalAlignment="Right"></Label>
-                    <TextBox Grid.Column="5" Grid.Row="3" Width="44" HorizontalAlignment="Left" Text="0.0" PreviewTextInput="DecimalValidationTextBox" 
-                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBAmpProp"></TextBox>
+                            <Label Grid.Column="4" Grid.Row="1" Content="Eye Amp Prop:" HorizontalAlignment="Right"></Label>
+                            <TextBox Grid.Column="5" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="0.0" PreviewTextInput="DecimalValidationTextBox" 
+                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBEyeAmpProp"></TextBox>
 
-                    <Label Grid.Column="6" Grid.Row="3" HorizontalAlignment="Right" VerticalAlignment="Top" Content="Reduce on diff &gt;"></Label>
-                    <TextBox Grid.Column="7" Grid.Row="3" Width="44" HorizontalAlignment="Left" Text="5" PreviewTextInput="NumberValidationTextBox" 
+                            <Label Grid.Column="6" Grid.Row="1" Content="Spot Amp Prop:" HorizontalAlignment="Right"></Label>
+                            <TextBox Grid.Column="7" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="0.9" PreviewTextInput="DecimalValidationTextBox" 
+                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSpotAmpProp"></TextBox>
+
+                            <Label Grid.Column="0" Grid.Row="2" HorizontalAlignment="Right" VerticalAlignment="Top" Content="Reduce on diff &gt;"></Label>
+                            <TextBox Grid.Column="1" Grid.Row="2" Height="25" Width="44" HorizontalAlignment="Left" Text="5" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBReduceEyeSpotAmpDiff"></TextBox>
 
-                  
+                            <Button Name="BtnCalculate" Grid.Column="5" Grid.Row="2" Grid.ColumnSpan="3"  Content="Render Prediction" 
+                            Click="ButtonCalculate_Click" ></Button>
+                            
+                        </Grid>
 
-                    <!--Row 4-->
-                    <Button Name="BtnCalculate" Grid.Column="5" Grid.Row="5" Grid.ColumnSpan="3"  Content="Render Prediction" IsEnabled="False"
-                            Click="ButtonCalculate_Click" Margin="0,10,0,0" Height="24"></Button>
+                    </GroupBox>
+
+
+                  
 
                 </Grid>
                 

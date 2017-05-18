@@ -143,7 +143,7 @@ namespace GazeDataViewer.Classes
                     else
                     {
                         //outputData.LEye[i] = Math.Round(lEye, 3);
-                        outputData.REye[i] = Math.Round(rEye, 3);
+                        outputData.Eye[i] = Math.Round(rEye, 3);
                         outputData.Spot[i] = Math.Round(spot, 3);
 
                     }

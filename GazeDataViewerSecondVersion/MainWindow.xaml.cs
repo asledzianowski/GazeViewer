@@ -21,6 +21,9 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using GazeDataViewer.Classes.Saccade;
+using static GazeDataViewer.Classes.Denoise.FilterButterworth;
+using GazeDataViewer.Classes.Denoise;
+using System.IO;
 
 namespace GazeDataViewer
 {
@@ -43,37 +46,39 @@ namespace GazeDataViewer
         {
             InitializeComponent();
 
-            EyeFilePath = "D:\\Development\\TheEyeTribeSDK\\GazeDataViewer\\result_out.txt";
+            //EyeFilePath = "D:\\Development\\TheEyeTribeSDK\\GazeDataViewer\\result_out.txt";
 
-            //EyeFilePath = "D:\\Development\\TheEyeTribeSDK\\GazeDataViewer\\gagol 4,5 po dbs on bmt on_sakady.csv";
-            //var filePath = "D:\\Development\\TheEyeTribeSDK\\GazeDataViewer\\ET_LewickaAnna_12poDBS_sakady_BMTOff_DBSoff_20150116_075226.csv";
-            //LoadDataAndAnalyze(filePath);
+      
         }
 
 
 
         private void LoadDataButton_Click(object sender, RoutedEventArgs e)
         {
+            var dialog = new OpenFileDialog();
+            dialog.ShowDialog();
+            if (!string.IsNullOrEmpty(dialog.FileName) && DataHelper.IsDataFileExtention(dialog.FileName))
+            {
+                EyeFilePath = dialog.FileName;
+                LoadDataPathTextBox.Text = dialog.FileName;
+                LoadDataAndAnalyze(EyeFilePath);
+                UnlockControll(true);
+            }
+            else
+            {
+                MessageBox.Show("File name empty or extention not allowed (only csv and txt).");
+            }
 
-            LoadDataAndAnalyze(EyeFilePath);
-            BtnCalculate.IsEnabled = true;
-            BtnApply.IsEnabled = true;
-            BtnSaccadeCalc.IsEnabled = true;
-            BtnAddEyeMove.IsEnabled = true;
+        }
 
-            //var dialog = new OpenFileDialog();
-            //dialog.ShowDialog();
-            //if (!string.IsNullOrEmpty(dialog.FileName) && DataHelper.IsDataFileExtention(dialog.FileName))
-            //{
-            //    EyeFilePath = dialog.FileName;
-            //    LoadDataPathTextBox.Text = dialog.FileName;
-            //    LoadDataAndAnalyze(EyeFilePath);
-            //}
-            //else
-            //{
-            //    MessageBox.Show("File name empty or extention not allowed (only csv and txt).");
-            //}
-
+        private void UnlockControll(bool isEnabled)
+        {
+            GBGraph.IsEnabled = isEnabled;
+            GBEyeMoves.IsEnabled = isEnabled;
+            GBFilters.IsEnabled = isEnabled;
+            GBPredictions.IsEnabled = isEnabled;
+            GBResults.IsEnabled = isEnabled;
+            GBTextOutput.IsEnabled = isEnabled;
         }
 
         private void LoadDataAndAnalyze(string eyeFilePath)
@@ -129,10 +134,8 @@ namespace GazeDataViewer
                     TBSavGoayPointsNum.Text = numCoef.ToString();
                 }
 
-                int derevOrder = int.Parse(TBSavGoayDerivOrder.Text);
-                int polyOrder = int.Parse(TBSavGoayPolyOrder.Text);
-                var shouldDenoise = CBDenoise.IsChecked.GetValueOrDefault();
-                CurrentResults = DataAnalyzer.Analyze(fileData, calcConfig, shouldDenoise, recEnd, numCoef, derevOrder, polyOrder);
+                var filterConfig = GetCurrentFilterConfig();
+                CurrentResults = DataAnalyzer.Analyze(fileData, calcConfig, recEnd, filterConfig);
                 ClearLines();
                 PlotDataForSpotGain(CurrentResults, calcConfig);
             }
@@ -169,7 +172,7 @@ namespace GazeDataViewer
             var timeAxisDataSource = new EnumerableDataSource<int>(results.PlotData.TimeStamps);
             timeAxisDataSource.SetXMapping(x => x);
 
-            var eyeDataSource = new EnumerableDataSource<double>(results.PlotData.RightEyeCoords);
+            var eyeDataSource = new EnumerableDataSource<double>(results.PlotData.EyeCoords);
             eyeDataSource.SetYMapping(x => x);
 
             var spotDataSource = new EnumerableDataSource<double>(results.PlotData.SpotCoords);
@@ -190,15 +193,15 @@ namespace GazeDataViewer
             Legend.SetDescription(line, "Spot");
 
             amplitudePlotter.Children.Add(line);
-            amplitudePlotter.FitToView();
+            //amplitudePlotter.FitToView();
 
 
             SaccadePositions = new List<SaccadePosition>();
-            for (int i = 0; i < results.PlotData.EarliestREyeOverSpotIndex.Count; i++)
+            for (int i = 0; i < results.PlotData.EarliestEyeOverSpotIndex.Count; i++)
             {
-                var currentEyeOverSpotIndex = results.PlotData.EarliestREyeOverSpotIndex[i];
+                var currentEyeOverSpotIndex = SaccadeDataHelper.CountEyeStartIndex(results.PlotData.EarliestEyeOverSpotIndex[i], calcCnfig.EyeStartShiftPeroid);
                 var spotOverMeanIndex = results.PlotData.SpotOverMeanIndex[i];
-                var currentEyeShiftIndex = SaccadeDataHelper.CountEyeShiftIndex(currentEyeOverSpotIndex, results.PlotData.ShiftPeriod, calcCnfig.SaccadeEndShiftPeroid);
+                var currentEyeShiftIndex = SaccadeDataHelper.CountEyeShiftIndex(currentEyeOverSpotIndex, results.PlotData.ShiftPeriod, calcCnfig.EyeEndShiftPeroid);
                 var currentSpotShiftIndex = SaccadeDataHelper.CountSpotShiftIndex(spotOverMeanIndex, results.PlotData.ShiftPeriod);
 
                 if (currentEyeShiftIndex < results.PlotData.TimeStamps.Count() && currentSpotShiftIndex < results.PlotData.TimeStamps.Count())
@@ -209,55 +212,29 @@ namespace GazeDataViewer
                 }
             }
 
-            //foreach (var spotOverMeanIndex in results.PlotData.SpotOverMeanIndex)
-            //{
-            //    var shiftIndex = spotOverMeanIndex + results.PlotData.ShiftPeriod;
-
-            //    if (shiftIndex < results.PlotData.TimeStamps.Count())
-            //    {
-            //        spotMarkerXPoints.Add(results.PlotData.TimeStamps[spotOverMeanIndex].TotalSeconds);
-            //        spotMarkerYPoints.Add(results.PlotData.SpotCoords[spotOverMeanIndex]);
-
-            //        spotMarkerXPoints.Add(results.PlotData.TimeStamps[shiftIndex].TotalSeconds);
-            //        spotMarkerYPoints.Add(results.PlotData.SpotCoords[shiftIndex]);
-
-            //    }
-            //}
-
-            //var spotMarkerXDataSource = new EnumerableDataSource<double>(spotMarkerXPoints);
-            //spotMarkerXDataSource.SetXMapping(x => x);
-            //var spotMarkerYDataSource = new EnumerableDataSource<double>(spotMarkerYPoints);
-            //spotMarkerYDataSource.SetYMapping(x => x);
-
-
-            //var spotMarkerCompositeDataSource = new CompositeDataSource(spotMarkerYDataSource, spotMarkerXDataSource);
-
-            //var marker = new MarkerPointsGraph(spotMarkerCompositeDataSource);
-            //var markPen = new CirclePointMarker();
-            //markPen.Pen = new Pen(Brushes.Red, 1);
-            //markPen.Size = 5;
-            //markPen.Fill = Brushes.Red;
-            //marker.Marker = markPen;
-
-            //amplitudePlotter.Children.Add(marker);
-
+        
 
             ApplySpotPointMarkers(SaccadePositions);
             ApplySaccadeMarkersAndControls(SaccadePositions);
 
-            amplitudePlotter.FitToView();
+            //amplitudePlotter.FitToView();
 
             //LogData(results);
 
             //fit to view with margins
-            var yMargin = ((results.PlotData.RightEyeCoords.Max() - results.PlotData.RightEyeCoords.Min()) / 10);
+            var yMargin = ((results.PlotData.EyeCoords.Max() - results.PlotData.EyeCoords.Min()) / 10);
             var xMargin = ((results.PlotData.TimeStamps.Max() - results.PlotData.TimeStamps.Min()) / 20);
 
             var xMin = results.PlotData.TimeStamps.Min() - xMargin;
             var xMax = results.PlotData.TimeStamps.Max() + xMargin;
-            var yMin = results.PlotData.RightEyeCoords.Min() - yMargin;
-            var yMax = results.PlotData.RightEyeCoords.Max() + yMargin;
-            amplitudePlotter.Viewport.Visible = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
+            var yMin = results.PlotData.EyeCoords.Min() - yMargin;
+            var yMax = results.PlotData.EyeCoords.Max() + yMargin;
+
+            if (CBFixView.IsChecked == false)
+            {
+                amplitudePlotter.FitToView();
+                amplitudePlotter.Viewport.Visible = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
+            }
         }
 
 
@@ -425,7 +402,7 @@ namespace GazeDataViewer
 
             var removeButton = new Button();
             removeButton.Content = "X";
-            //removeButton.FontWeight = FontWeights.Bold;
+            //removeButton.F = FontWeights.Bold;
             removeButton.Tag = saccade.Id;
             removeButton.VerticalAlignment = VerticalAlignment.Center;
             removeButton.Padding = controlPadding;
@@ -497,7 +474,7 @@ namespace GazeDataViewer
         {
             var sb = new StringBuilder();
             var sep = "  ";
-            var rowSep = "====================================================";
+            var rowSep = "=========================================";
 
             sb.Append(rowSep);
             sb.Append(Environment.NewLine);
@@ -523,16 +500,17 @@ namespace GazeDataViewer
                 sb.Append(Environment.NewLine);
                 sb.Append($"Frame Count: {result.FrameCount}");
                 sb.Append(Environment.NewLine);
+                sb.Append(Environment.NewLine);
 
                 sb.Append("Y Values:");
                 sb.Append(Environment.NewLine);
                 for (int i = result.EyeStartIndex; i < result.EyeStartIndex + result.FrameCount; i++)
                 {
-                    sb.Append($"Index:{i} - Value: {CurrentResults.PlotData.RightEyeCoords[i]}");
+                    sb.Append($"Index:{i} - Value: {CurrentResults.PlotData.EyeCoords[i]}");
                     sb.Append(Environment.NewLine);
                 }
 
-
+                sb.Append(Environment.NewLine);
                 sb.Append("X Values:");
                 sb.Append(Environment.NewLine);
                 for (int i = result.EyeStartIndex; i < result.EyeStartIndex + result.FrameCount; i++)
@@ -632,8 +610,11 @@ namespace GazeDataViewer
             int eyeShiftPeriod;
             int spotShiftPeriod;
             double ampProp;
+            double spotProp;
             int reduceEyeSpotAmpDiff;
-            int saccadeEndShiftPeroid;
+            int eyeStartShiftPeroid;
+            int eyeEndShiftPeroid;
+            
 
             var isRecStart = int.TryParse(TBStartRec.Text, out recStart);
             if (isRecStart)
@@ -666,14 +647,14 @@ namespace GazeDataViewer
                 MessageBox.Show($"Wrong value of 'Spot Shift Period'. Should be int.");
             }
 
-            var isSaccadeEndShiftPeroid = int.TryParse(TBSaccadeEndShiftPeroid.Text, out saccadeEndShiftPeroid);
+            var isSaccadeEndShiftPeroid = int.TryParse(TBSaccadeEndShiftPeroid.Text, out eyeEndShiftPeroid);
             if (isSaccadeEndShiftPeroid)
             {
-                calcConfig.SaccadeEndShiftPeroid = saccadeEndShiftPeroid;
+                calcConfig.EyeEndShiftPeroid = eyeEndShiftPeroid;
             }
             else
             {
-                MessageBox.Show($"Wrong value of 'Saccade End Shift Peroid'. Should be int.");
+                MessageBox.Show($"Wrong value of 'Eye End Shift Peroid'. Should be int.");
             }
 
             var isReduceEyeSpotAmpDiff = int.TryParse(TBReduceEyeSpotAmpDiff.Text, out reduceEyeSpotAmpDiff);
@@ -686,17 +667,139 @@ namespace GazeDataViewer
                 MessageBox.Show($"Wrong value of 'Reduce Eye Spot Amp Diff'. Should be int.");
             }
 
-            var isAmpProp = double.TryParse(TBAmpProp.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out ampProp);
+            var isAmpProp = double.TryParse(TBEyeAmpProp.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out ampProp);
             if (isAmpProp)
             {
-                calcConfig.AmpProp = ampProp;
+                calcConfig.EyeAmpProp = ampProp;
             }
             else
             {
-                MessageBox.Show($"Wrong value of 'Amp Prop'. Should be double (decimal).");
+                MessageBox.Show($"Wrong value of 'Eye Amp Prop'. Should be double (decimal).");
+            }
+
+            var isSpotProp = double.TryParse(TBSpotAmpProp.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out spotProp);
+            if (isSpotProp)
+            {
+                calcConfig.SpotAmpProp = spotProp;
+            }
+            else
+            {
+                MessageBox.Show($"Wrong value of 'Spot Amp Prop'. Should be double (decimal).");
+            }
+
+            var isEyeStartShiftPeroid = int.TryParse(TBSaccadeStartShiftPeroid.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out eyeStartShiftPeroid);
+            if (isEyeStartShiftPeroid)
+            {
+                calcConfig.EyeStartShiftPeroid = eyeStartShiftPeroid;
+            }
+            else
+            {
+                MessageBox.Show($"Wrong value of 'Eye Start Shift Peroid'. Should be {calcConfig.EyeStartShiftPeroid.GetType().Name}");
             }
 
             return calcConfig;
+
+        }
+
+        private FiltersConfig GetCurrentFilterConfig()
+        {
+            var filtersConfig = new FiltersConfig();
+
+            double butterworthFrequency;
+            int butterworthSampleRate;
+            PassType butterworthPassType;
+            double butterworthResonance;
+
+            int savitzkyGolayNumberOfPoints;
+            int savitzkyGolayDerivativeOrder;
+            int savitzkyGolayPolynominalOrder;
+
+            if (CBFilterButterworth.IsChecked == true)
+            {
+                filtersConfig.FilterByButterworth = true;
+                var isbutterworthFrequency = double.TryParse(TBButterWorthFrequency.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out butterworthFrequency);
+                if (isbutterworthFrequency)
+                {
+                    filtersConfig.ButterworthFrequency = butterworthFrequency;
+                }
+                else
+                {
+                    MessageBox.Show($"Wrong value of 'Butter Worth Frequency'. Should be {filtersConfig.ButterworthFrequency.GetType().Name}.");
+                }
+
+                var isButterworthSampleRate = int.TryParse(TBButterWorthSampleRate.Text, out butterworthSampleRate);
+                if (isButterworthSampleRate)
+                {
+                    filtersConfig.ButterworthSampleRate = butterworthSampleRate;
+                }
+                else
+                {
+                    MessageBox.Show($"Wrong value of 'Butter Worth Frequency'. Should be {filtersConfig.ButterworthSampleRate.GetType().Name}.");
+                }
+
+                var isButterworthPassType = Enum.TryParse(ComboFilterTypeButterworth.SelectedValue.ToString(), out butterworthPassType);
+                if (isButterworthPassType)
+                {
+                    filtersConfig.ButterworthPassType = butterworthPassType;
+                }
+                else
+                {
+                    MessageBox.Show($"Wrong value of 'Butter Pass Type'. Should be {filtersConfig.ButterworthPassType.GetType().Name}.");
+                }
+
+                var isButterworthResonance = double.TryParse(TBButterWorthResonance.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out butterworthResonance);
+                if (isButterworthResonance)
+                {
+                    filtersConfig.ButterworthResonance = butterworthResonance;
+                }
+                else
+                {
+                    MessageBox.Show($"Wrong value of 'Butter Pass Type'. Should be {filtersConfig.ButterworthResonance.GetType().Name}.");
+                }
+            }
+            else
+            {
+                filtersConfig.FilterByButterworth = false;
+            }
+
+            if (CBFilterSavGolay.IsChecked == true)
+            {
+                filtersConfig.FilterBySavitzkyGolay = true;
+                var issavitzkyGolayNuberOfPoints = int.TryParse(TBSavGoayPointsNum.Text, out savitzkyGolayNumberOfPoints);
+                if (issavitzkyGolayNuberOfPoints)
+                {
+                    filtersConfig.SavitzkyGolayNumberOfPoints = savitzkyGolayNumberOfPoints;
+                }
+                else
+                {
+                    MessageBox.Show($"Wrong value of 'Number Of Points'. Should be {filtersConfig.SavitzkyGolayNumberOfPoints.GetType().Name}.");
+                }
+
+                var issavitzkyGolayDerivativeOrder = int.TryParse(TBSavGoayDerivOrder.Text, out savitzkyGolayDerivativeOrder);
+                if (issavitzkyGolayDerivativeOrder)
+                {
+                    filtersConfig.SavitzkyGolayDerivativeOrder = savitzkyGolayDerivativeOrder;
+                }
+                else
+                {
+                    MessageBox.Show($"Wrong value of 'Derivative Order '. Should be {filtersConfig.SavitzkyGolayDerivativeOrder.GetType().Name}.");
+                }
+
+                var issavitzkyGolayPolynominalOrder = int.TryParse(TBSavGoayPolyOrder.Text, out savitzkyGolayPolynominalOrder);
+                if (issavitzkyGolayPolynominalOrder)
+                {
+                    filtersConfig.SavitzkyGolayPolynominalOrder = savitzkyGolayPolynominalOrder;
+                }
+                else
+                {
+                    MessageBox.Show($"Wrong value of 'Polynominal Order  '. Should be {filtersConfig.SavitzkyGolayPolynominalOrder.GetType().Name}.");
+                }
+            }
+            else
+            {
+                filtersConfig.FilterBySavitzkyGolay = false;
+            }
+            return filtersConfig;
 
         }
 
@@ -779,7 +882,7 @@ namespace GazeDataViewer
 
             var distanceFromScreen = int.Parse(TBDistanceFromScreen.Text);
             var frequency = int.Parse(TBFrequency.Text);
-            var saccCalculator = new SaccadeParamsCalcuator(SaccadePositions, CurrentResults.PlotData.RightEyeCoords,
+            var saccCalculator = new SaccadeParamsCalcuator(SaccadePositions, CurrentResults.PlotData.EyeCoords,
                 CurrentResults.PlotData.SpotCoords, distanceFromScreen, frequency);
             var results = saccCalculator.Calculate();
             LogData(results);
@@ -801,11 +904,11 @@ namespace GazeDataViewer
             {
                 Id = currentId,
                 SaccadeStartIndex = eyeStartIndex,
-                SaccadeStartCoord = CurrentResults.PlotData.RightEyeCoords[eyeStartIndex],
+                SaccadeStartCoord = CurrentResults.PlotData.EyeCoords[eyeStartIndex],
                 SaccadeStartTime = CurrentResults.PlotData.TimeStamps[eyeStartIndex],
 
                 SaccadeEndIndex = eyeMoveEndIndex,
-                SaccadeEndCoord = CurrentResults.PlotData.RightEyeCoords[eyeMoveEndIndex],
+                SaccadeEndCoord = CurrentResults.PlotData.EyeCoords[eyeMoveEndIndex],
                 SaccadeEndTime = CurrentResults.PlotData.TimeStamps[eyeMoveEndIndex],
 
                 SpotStartIndex = spotStartIndex,
@@ -839,6 +942,63 @@ namespace GazeDataViewer
                 this.SaccadePositions.Remove(saccadeForRemove);
                 ApplySaccadeMarkersAndControls(this.SaccadePositions);
             }
+        }
+
+        private void ComboBox_Loaded(object sender, RoutedEventArgs e)
+        {
+            List<string> data = new List<string>();
+
+            foreach(var passType in Enum.GetValues(typeof(PassType)))
+            {
+                data.Add(passType.ToString());
+            }
+
+            var comboBox = sender as ComboBox;
+            comboBox.ItemsSource = data;
+            comboBox.SelectedIndex = 0;
+        }
+
+        private void BtnClearResults_Click(object sender, RoutedEventArgs e)
+        {
+            LogTextBox.Text = string.Empty;
+        }
+
+        private void BtnSaveResults_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new SaveFileDialog();
+            dlg.FileName = $"GazeAnalyzeResults{DateTime.Now.Hour}{DateTime.Now.Minute}{DateTime.Now.Second}"; 
+            dlg.DefaultExt = ".txt"; 
+            dlg.Filter = "Text documents (.txt)|*.txt"; 
+
+            var result = dlg.ShowDialog();
+            if (result == true)
+            {
+                string filePath = dlg.FileName;
+                if(!File.Exists(filePath))
+                 {
+                    File.WriteAllText(filePath, LogTextBox.Text);
+                }
+            }
+        }
+
+        private void BtnSaveScreenShot_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new SaveFileDialog();
+            dlg.FileName = $"GazeAnalyzeResults{DateTime.Now.Hour}{DateTime.Now.Minute}{DateTime.Now.Second}";
+            dlg.DefaultExt = ".jpg";
+            dlg.Filter = "jpg files (.jpg)|*.jpg";
+
+            var result = dlg.ShowDialog();
+            if (result == true)
+            {
+                string filePath = dlg.FileName;
+                if (!File.Exists(filePath))
+                {
+                    amplitudePlotter.SaveScreenshot(filePath);
+                }
+            }
+
+                    
         }
     }
 }

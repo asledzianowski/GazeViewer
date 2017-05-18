@@ -16,11 +16,11 @@ namespace GazeDataViewer.Classes.Saccade
                 Id = id,
                 SaccadeStartIndex = saccadeStartIndex,
                 SaccadeStartTime = results.PlotData.TimeStamps[saccadeStartIndex],
-                SaccadeStartCoord = results.PlotData.RightEyeCoords[saccadeStartIndex],
+                SaccadeStartCoord = results.PlotData.EyeCoords[saccadeStartIndex],
 
                 SaccadeEndIndex = saccadeEndIndex,
                 SaccadeEndTime = results.PlotData.TimeStamps[saccadeEndIndex],
-                SaccadeEndCoord = results.PlotData.RightEyeCoords[saccadeEndIndex],
+                SaccadeEndCoord = results.PlotData.EyeCoords[saccadeEndIndex],
 
                 SpotStartIndex = spotOverMeanStartIndex,
                 SpotStartTime = results.PlotData.TimeStamps[spotOverMeanStartIndex],
@@ -42,11 +42,11 @@ namespace GazeDataViewer.Classes.Saccade
                 Id = id,
                 SaccadeStartIndex = saccadeStartIndex,
                 SaccadeStartTime = results.PlotData.TimeStamps[saccadeStartIndex],
-                SaccadeStartCoord = results.PlotData.RightEyeCoords[saccadeStartIndex],
+                SaccadeStartCoord = results.PlotData.EyeCoords[saccadeStartIndex],
 
                 SaccadeEndIndex = saccadeEndIndex,
                 SaccadeEndTime = results.PlotData.TimeStamps[saccadeEndIndex],
-                SaccadeEndCoord = results.PlotData.RightEyeCoords[saccadeEndIndex],
+                SaccadeEndCoord = results.PlotData.EyeCoords[saccadeEndIndex],
 
                 SpotStartIndex = spotOverMeanStartIndex,
                 SpotStartTime = spotStartTime,
@@ -59,7 +59,13 @@ namespace GazeDataViewer.Classes.Saccade
             };
         }
 
-        public static int CountEyeShiftIndex(int eyeStartIndex, int eyeShiftPeriod, int saccadeEndShiftPeroid)
+        public static int CountEyeStartIndex(int eyeStartIndex, int eyeStartShiftPeriod)
+        {
+            return eyeStartIndex + eyeStartShiftPeriod;
+        }
+
+
+        public static int CountEyeShiftIndex(int eyeStartIndex, int eyeShiftPeriod,  int saccadeEndShiftPeroid)
         {
             return eyeStartIndex + eyeShiftPeriod + saccadeEndShiftPeroid;
         }

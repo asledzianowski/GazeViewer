@@ -90,6 +90,8 @@
     </Compile>
     <Compile Include="Classes\CalculationHelper.cs" />
     <Compile Include="Classes\DataHelper.cs" />
+    <Compile Include="Classes\Denoise\FilterButterworth.cs" />
+    <Compile Include="Classes\Denoise\FiltersConfig.cs" />
     <Compile Include="Classes\Denoise\WavletDenoise.cs" />
     <Compile Include="Classes\DrawingHelper.cs" />
     <Compile Include="Classes\GazeDataLogItem.cs" />
