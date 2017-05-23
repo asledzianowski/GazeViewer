@@ -209,7 +209,7 @@ namespace GazeDataViewer
                     //var saccItem = SaccadeDataHelper.GetSaccadePositionItem(i, currentEyeOverSpotIndex, currentEyeShiftIndex,
                     //    spotOverMeanIndex, currentSpotShiftIndex, results);
 
-                    var saccItem = SaccadeDataHelper.FindSaccade(i, spotOverMeanIndex, currentSpotShiftIndex, 7, 3, results.PlotData);
+                    var saccItem = SaccadeDataHelper.FindSaccade(i, spotOverMeanIndex, currentSpotShiftIndex, calcCnfig.ReductMinEyeSpotAmpDiff, 3, results.PlotData);
                     if (saccItem != null)
                     {
                         SaccadePositions.Add(saccItem);

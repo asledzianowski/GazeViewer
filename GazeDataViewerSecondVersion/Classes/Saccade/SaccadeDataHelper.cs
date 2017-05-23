@@ -62,12 +62,6 @@ namespace GazeDataViewer.Classes.Saccade
         public static SaccadePosition FindSaccade(int id, int spotStartIndex, int spotEndIndex, int latency, int minDuration, PlotData results)
         {
 
-            if (id == 4)
-            {
-
-            }
-            //TODO: Latency
-          
             var distanceFromScreen = 30;
             var trackerFrequency = 60;
             var controlWindowLength = 12;
@@ -75,7 +69,12 @@ namespace GazeDataViewer.Classes.Saccade
 
 
             var eyeStartIndex = spotStartIndex + latency;
+            var spotStartOscilationXPosition = results.SpotCoords[spotStartIndex];
+            var spotEndOscilationXPosition = results.SpotCoords[spotStartIndex + 1];
+
             var controlWindowStartIndex = spotStartIndex;
+
+
 
             var roundCoef = 5;
             int numberOfControlWindows = 6;
@@ -97,42 +96,29 @@ namespace GazeDataViewer.Classes.Saccade
                 currentStartIndex = currentStartIndex - controlWindowLength;
             }
 
-            //var controlWindowCoords = results.EyeCoords.Skip(controlWindowStartIndex - controlWindowLength).Take(controlWindowLength).ToArray();
-            //var controlWindowVelocities = GetFrameVelocityCollection(controlWindowCoords, distanceFromScreen, trackerFrequency);
-            //var controlVelocity = controlWindowVelocities.Max();
-
-
-            //var controlVelocity = Math.Round(GetAvergeVelocityForSection(controlWindowCoords, distanceFromScreen, trackerFrequency), roundCoef);
-            //var controlAmplitude = Math.Round(GetAmplitudeForSection(controlWindowCoords, distanceFromScreen), roundCoef);
 
             var controlVelocity = windowsBeforeSpotVelocities.Average();
             var controlAmplitude = windowsBeforeSpotAmplitudes.Average();
 
-            var eyeStartWindows = GetWindows(results.EyeCoords, eyeStartIndex, saccadeFindWindowLength, 12);
+            var fixStartIndex = eyeStartIndex; //spotStartIndex;
+
+            var numberOfStartWindows = 9;
+            var startCoords = results.EyeCoords.Skip(fixStartIndex).Take(saccadeFindWindowLength * numberOfStartWindows).ToArray();
+            eyeStartIndex = GetByStartIndexByCoords(startCoords, fixStartIndex, spotStartOscilationXPosition, spotEndOscilationXPosition);
+
+
+            var eyeStartWindows = GetWindows(results.EyeCoords, eyeStartIndex, saccadeFindWindowLength, 9);
 
             var amplitudesOfWindows = GetAmplitudeCollectionFromWindows(eyeStartWindows, roundCoef, distanceFromScreen);//new Dictionary<int, double>();
             var velocitiesOfWindows = GetVelocityCollectionFromWindows(eyeStartWindows, roundCoef, distanceFromScreen, trackerFrequency); //new Dictionary<int, double>();
 
-            //for (int i = 0; i < windows.Count; i++)
-            //{
-            //    if(windows[i].Length > 0)
-            //    {
-            //        var windowVelocity = GetAvergeVelocityForSection(windows[i], distanceFromScreen, trackerFrequency);
-            //        velocitiesOfWindows.Add(i, Math.Round(windowVelocity, roundCoef));
-
-            //        var windowAmplitude = GetAmplitudeForSection(windows[i], distanceFromScreen);
-            //        amplitudesOfWindows.Add(i, Math.Round(windowAmplitude, roundCoef));
-            //    }
-                
-            //}
-
 
             if (velocitiesOfWindows.Count > 0)
             {
-
+                var saccadeStartIndex = eyeStartIndex;
                 var velocityToCompare = controlVelocity + ((controlVelocity / 100) * 20);
                 var windowVelocitiesOverControl = velocitiesOfWindows.Where(x => x.Value > velocityToCompare);
-                var numberOfStartWindows = 9;
+                
                 if(windowVelocitiesOverControl.Count() == 0)
                 {
                     eyeStartWindows = GetWindows(results.EyeCoords, eyeStartIndex + saccadeFindWindowLength, saccadeFindWindowLength, numberOfStartWindows);
@@ -143,7 +129,7 @@ namespace GazeDataViewer.Classes.Saccade
                     windowVelocitiesOverControl = velocitiesOfWindows.Where(x => x.Value > controlVelocity);
                    
                 }
-                int saccadeStartIndex = 0;
+               
 
                 if (windowVelocitiesOverControl.Count() > 0)
                 {
@@ -152,120 +138,14 @@ namespace GazeDataViewer.Classes.Saccade
                     var firstWindowFrameDistances = CalculateDistances(firstWindow.Value);
                     var firstWindowMaxFrameDistance = firstWindowFrameDistances.Max();
                     var firstWindowMaxFrameDistanceIndex = Array.IndexOf(firstWindowFrameDistances, firstWindowMaxFrameDistance);
-
-                    //var indexDiff = Math.Abs(firstWindowMaxFrameDistanceIndex - eyeStartIndex);
+                    
                     var startIndexByVelocityWindow = eyeStartIndex + (10 * firstVelocityWindow.Key );
                     saccadeStartIndex = startIndexByVelocityWindow + firstWindowMaxFrameDistanceIndex ;
 
                     var saccadeStartXPosition = results.EyeCoords[saccadeStartIndex];
-                    var spotStartOscilationXPosition = results.SpotCoords[spotStartIndex];
-                    var spotEndOscilationXPosition = results.SpotCoords[spotStartIndex + 1];
-
-                    var fixPosition = false;
-
-                    if (spotStartOscilationXPosition < spotEndOscilationXPosition)
-                    {
-                        if (saccadeStartXPosition > spotEndOscilationXPosition)
-                        {
-                            fixPosition = true;
-                        }
-                    }
-                    else
-                    {
-                        if (saccadeStartXPosition > spotEndOscilationXPosition)
-                        {
-                            fixPosition = true;
-                        }
-                    }
-
-                    //if (saccadeStartXPosition > spotEndOscilationXPosition)
-                    if (fixPosition)
-                    {
-                        var fixStartIndex = eyeStartIndex; //spotStartIndex;
-                        var startCoords = results.EyeCoords.Skip(fixStartIndex).Take(saccadeFindWindowLength * numberOfStartWindows).ToArray();
-                        double? startCoord ;
-
-
-                        if (spotStartOscilationXPosition == 0 && spotEndOscilationXPosition == 1)
-                        {
-                            for (int i = 0; i < startCoords.Count(); i++)
-                            {
-                                if (startCoords[i] > spotStartOscilationXPosition)
-                                {
-                                    saccadeStartIndex = fixStartIndex + i;
-                                    break;
-                                }
-                            }
-                        }
-                        else if (spotStartOscilationXPosition == 1 && spotEndOscilationXPosition == 0)
-                        {
-                            for (int i = 0; i < startCoords.Count(); i++)
-                            {
-                                if (startCoords[i] < spotStartOscilationXPosition)
-                                {
-                                    saccadeStartIndex = fixStartIndex + i;
-                                    break;
-                                }
-                            }
-                        }
-                        else if (spotStartOscilationXPosition == 0 && spotEndOscilationXPosition == -1)
-                        {
-                            for (int k = 0; k < startCoords.Count(); k++)
-                            {
-                                if (!IsPositive(startCoords[k], k))
-                                {
-                                    saccadeStartIndex = fixStartIndex + k;
-                                    break;
-                                }
-                            }
-                        }
-                        else if (spotStartOscilationXPosition == -1 && spotEndOscilationXPosition == 0)
-                        {
-                            for (int i = 0; i < startCoords.Count(); i++)
-                            {
-                                if (startCoords[i] > spotStartOscilationXPosition)
-                                {
-                                    saccadeStartIndex = fixStartIndex + i;
-                                    break;
-                                }
-                            }
-                        }
-
-                        //if (spotEndOscilationXPosition < 0)
-                        //{
-                        //    for(int i = 0; i < startCoords.Count(); i++ )
-                        //    {
-                        //        if(startCoords[i] < spotStartOscilationXPosition)
-                        //        {
-                        //            saccadeStartIndex = spotStartIndex + i;
-                        //            break;
-                        //        }
-                        //    }
-                        //    //startCoord = startCoords.FirstOrDefault(x => x < spotStartXPosition);
-                        //}
-                        //else
-                        //{
-                        //    for (int i = 0; i < startCoords.Count(); i++)
-                        //    {
-                        //        if (startCoords[i] < spotStartOscilationXPosition)
-                        //        {
-                        //            saccadeStartIndex = spotStartIndex + i;
-                        //            break;
-                        //        }
-                        //    }
-                        //    //startCoord = startCoords.FirstOrDefault(x => x > spotStartXPosition);
-                        //}
-
-                        //if (startCoord != null)
-                        //{
-                        //    saccadeStartIndex = Array.IndexOf(results.EyeCoords, startCoord);
-                        //}
-                    }
-
-                    //accadeStartIndex--;
+                  
                     var endWindowStartIndex = saccadeStartIndex + 3;
-                    //var spotLength = Math.Abs(spotEndIndex - spotStartIndex);
-
+                    
                     double[] endWindowCoords; 
                     if (results.EyeCoords.Skip(endWindowStartIndex).Take(5).Count() == 0)
                     {
@@ -273,7 +153,6 @@ namespace GazeDataViewer.Classes.Saccade
                     }
                     else
                     {
-                        ///var lenghtToSpot =  Math.Abs(spotEndIndex - endWindowStartIndex);
                         endWindowCoords = results.EyeCoords.Skip(endWindowStartIndex).Take(4).ToArray();
                     }
                     
@@ -282,8 +161,6 @@ namespace GazeDataViewer.Classes.Saccade
                     var endWindowMaxFrameDistanceIndex = Array.IndexOf(endWindowFrameDistances, endWindowMaxFrameDistance );
 
                     var saccadeEndIndex = endWindowStartIndex + (endWindowMaxFrameDistanceIndex );
-
-                    // var saccadeEndIndex = saccadeStartIndex + Math.Abs(spotEndIndex - spotStartIndex);
 
                     if (saccadeStartIndex >= results.EyeCoords.Length)
                     {
@@ -367,83 +244,60 @@ namespace GazeDataViewer.Classes.Saccade
                 };
             }
 
-           
-
-            
-
-            
-
-            //var saccadeStartWindow1 = results.EyeCoords.Skip(eyeStartIndex).Take(saccadeFindWindowLength).ToArray();
-
-            //var saccadeStartVelocity1 = GetAvergeVelocityForSection(saccadeStartWindow1, distanceFromScreen, trackerFrequency);
-            //var saccadeStar1tAmplitude1 = GetAmplitudeForSection(saccadeStartWindow1, distanceFromScreen);
-
-            //var saccadeStartWindow2 = results.EyeCoords.Skip(eyeStartIndex + saccadeFindWindowLength).Take(saccadeFindWindowLength).ToArray();
-
-            //var saccadeStartVelocity2 = GetAvergeVelocityForSection(saccadeStartWindow2, distanceFromScreen, trackerFrequency);
-            //var saccadeStar1tAmplitude2 = GetAmplitudeForSection(saccadeStartWindow2, distanceFromScreen);
-
-            //var saccadeStartWindowVelcoities = GetFrameVelocityCollection(saccadeStartWindow1, distanceFromScreen, trackerFrequency);
-
-            //var velocities2 = new List<double>();
-            //var angles = new List<double>();
-            //var saccadeStartDistances = CalculateDistances(saccadeStartWindow1);
-
-            //foreach (var distanceOnScreen in saccadeStartDistances)
-            //{
-
-            //    var visualAngle = Math.Atan2(distanceFromScreen, distanceOnScreen);
-            //    var velocity = distanceOnScreen / trackerFrequency;
-            //    angles.Add(visualAngle);
-            //    velocities2.Add(Math.Round(velocity, 3));
-            //}
-
-            //var saccadeStartIndex = 0;
-            //for (int i = 0; i < saccadeStartWindowVelcoities.Count; i++)
-            //{
-            //    if (saccadeStartWindowVelcoities[i] >= controlVelocity)
-            //    {
-            //        saccadeStartIndex = i;
-            //        break;
-            //    }
-            //}
-
-            //var saccadeEndWindow = results.EyeCoords.Skip(saccadeStartIndex + minDuration).Take(controlWindowLength).ToArray();
-            //var saccadeEndWindowVelcoities = GetFrameVelocityCollection(saccadeEndWindow, distanceFromScreen, trackerFrequency);
-
-            //var saccadeEndIndex = 0;
-            //for (int i = 0; i < saccadeEndWindowVelcoities.Count; i++)
-            //{
-            //    if (saccadeEndWindowVelcoities[i] <= controlVelocity)
-            //    {
-            //        saccadeEndIndex = i;
-            //        break;
-            //    }
-            //}
-
-            //return new SaccadePosition
-            //{
-            //    Id = id,
-
-            //    SaccadeStartIndex = saccadeStartIndex,
-            //    SaccadeStartTime = results.TimeStamps[saccadeStartIndex],
-            //    SaccadeStartCoord = results.EyeCoords[saccadeStartIndex],
-
-            //    SaccadeEndIndex = saccadeEndIndex,
-            //    SaccadeEndTime = results.TimeStamps[saccadeEndIndex],
-            //    SaccadeEndCoord = results.EyeCoords[saccadeEndIndex],
-
-            //    SpotStartIndex = spotStartIndex,
-            //    SpotStartTime = results.TimeStamps[spotStartIndex],
-            //    SpotStartCoord = results.SpotCoords[spotStartIndex],
-
-            //    SpotEndIndex = spotEndIndex,
-            //    SpotEndTime = results.TimeStamps[spotEndIndex],
-            //    SpotEndCoord = results.SpotCoords[spotEndIndex],
-
-            //};
-
         }
+
+        private static int GetByStartIndexByCoords(double[] startCoords, int eyeStartIndex, double spotStartOscilationXPosition, double spotEndOscilationXPosition)
+        {
+            int saccadeStartIndex = eyeStartIndex;
+
+            if (spotStartOscilationXPosition == 0 && spotEndOscilationXPosition == 1)
+            {
+                for (int i = 0; i < startCoords.Count(); i++)
+                {
+                    if (startCoords[i] > spotStartOscilationXPosition)
+                    {
+                        saccadeStartIndex = eyeStartIndex + i;
+                        break;
+                    }
+                }
+            }
+            else if (spotStartOscilationXPosition == 1 && spotEndOscilationXPosition == 0)
+            {
+                for (int i = 0; i < startCoords.Count(); i++)
+                {
+                    if (startCoords[i] < spotStartOscilationXPosition)
+                    {
+                        saccadeStartIndex = eyeStartIndex + i;
+                        break;
+                    }
+                }
+            }
+            else if (spotStartOscilationXPosition == 0 && spotEndOscilationXPosition == -1)
+            {
+                for (int k = 0; k < startCoords.Count(); k++)
+                {
+                    if (!IsPositive(startCoords[k], k))
+                    {
+                        saccadeStartIndex = eyeStartIndex + k;
+                        break;
+                    }
+                }
+            }
+            else if (spotStartOscilationXPosition == -1 && spotEndOscilationXPosition == 0)
+            {
+                for (int i = 0; i < startCoords.Count(); i++)
+                {
+                    if (startCoords[i] > spotStartOscilationXPosition)
+                    {
+                        saccadeStartIndex = eyeStartIndex + i;
+                        break;
+                    }
+                }
+            }
+
+            return saccadeStartIndex;
+        }
+
 
         private static bool IsPositive(double value, int i)
         {
