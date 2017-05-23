@@ -56,6 +56,8 @@ namespace GazeDataViewer.Classes.Saccade
             return distance;
         }
 
+       
+
         private SaccadeCalculation CalculateSaccadeParams(SaccadePosition saccadePosition, double[] eyeCoords, double[] spotCoords)
         {
 
@@ -90,20 +92,31 @@ namespace GazeDataViewer.Classes.Saccade
             var spotLenght = (saccadePosition.SpotEndIndex - saccadePosition.SpotStartIndex) + 1;
             var spotMove = spotCoords.Skip(saccadePosition.SpotStartIndex).Take(spotLenght).ToArray();
 
-            var eyeMoveDistanceOnScreen = CountOnScreenDistance(saccadeCoords);
-            var spotMoveDistanceOnScreen = CountOnScreenDistance(spotMove);
+            var eyeMoveDistanceOnScreen = CountOnScreenDistance(saccadeCoords) ;
+            var spotMoveDistanceOnScreen = CountOnScreenDistance(spotMove) ;
 
             var eyeMoveVisualAngle = Math.Round((Math.Atan2(this.distanceFromScreen, eyeMoveDistanceOnScreen) * 10) ,0);
             var spotMoveVisualAngle = Math.Round((Math.Atan2(this.distanceFromScreen, spotMoveDistanceOnScreen) * 10), 0);
-            var gain = eyeMoveVisualAngle / spotMoveVisualAngle;
+            //var gain = eyeMoveVisualAngle / spotMoveVisualAngle;
 
-            var saccadeTime = this.trackerFrequency / frameCount;
-            var velocity = eyeMoveVisualAngle * saccadeTime;
+            var gain = eyeMoveDistanceOnScreen / spotMoveDistanceOnScreen ;
 
-            double duration = frameCount / this.trackerFrequency;
-            
+
+            //var saccadeTime = this.trackerFrequency / frameCount;
+            //var saccadeTime2 = (1 / this.trackerFrequency) * frameCount;
+            //var velocityOrginal = eyeMoveVisualAngle /* * */ / saccadeTime;
+            //var velocity2 = eyeMoveVisualAngle /* * */ / saccadeTime2;
+            // var velocity3 = eyeMoveVisualAngle /* * */ / trackerFrequency;
+
+            var duration = frameCount / this.trackerFrequency; ;
+            var velocity = eyeMoveVisualAngle / duration;
+
+            //double duration = frameCount / this.trackerFrequency;
+            double duration2 = (1 / this.trackerFrequency) * frameCount;
+
             var spotEyeIndexDiff = Math.Abs(saccadePosition.SaccadeStartIndex - saccadePosition.SpotStartIndex);
             var latency = (spotEyeIndexDiff / this.trackerFrequency);
+            var latencyFrameCount = spotEyeIndexDiff;
             //var latency = 1f / latencySpan;
 
             var velocities = GetFrameVelocityCollection(saccadeCoords);
@@ -116,14 +129,15 @@ namespace GazeDataViewer.Classes.Saccade
                 EyeStartIndex = saccadePosition.SaccadeStartIndex,
                 EyeEndIndex = saccadePosition.SaccadeEndIndex,
 
-                FrameCount = Convert.ToInt32(frameCount),
+                LatencyFrameCount = Convert.ToInt32(spotEyeIndexDiff),
+                DurationFrameCount = Convert.ToInt32(frameCount),
                 Latency = Math.Round(latency,3),
                 Duration = Math.Round(duration, 3),
                 Distance = Math.Round(eyeMoveDistanceOnScreen, 3),
                 Amplitude = Math.Round(eyeMoveVisualAngle, 3),
-                Velocity = Math.Round(velocity, 3),
-                MaxVelocity = Math.Round(velocities.Max(),3),
-                AvgVelocity = Math.Round(velocities.Average(), 3),
+                Velocity = Math.Round(velocity, 0),
+                //MaxVelocity = Math.Round(velocities.Max(),3),
+                //AvgVelocity = Math.Round(velocities.Average(), 3),
                 Gain = Math.Round(gain, 2)
             };
 
@@ -148,14 +162,14 @@ namespace GazeDataViewer.Classes.Saccade
 
             foreach(var distanceOnScreen in distances)
             {
-                var visualAngle = Math.Round((Math.Atan2(this.distanceFromScreen, distanceOnScreen) ), 0);
-                var saccadeTime = this.trackerFrequency / 2;
+                var visualAngle = Math.Round((Math.Atan2(this.distanceFromScreen, distanceOnScreen)), 0);
+                var saccadeTime = 2 /this.trackerFrequency;
                 var velocity = visualAngle * saccadeTime;
                 velocities.Add(velocity);
 
-                var tangent = distanceOnScreen / this.distanceFromScreen;
-                var arctangent = 2 * Math.Atan(tangent);
-                var output = arctangent * (180 / Math.PI);
+                //var tangent = distanceOnScreen / this.distanceFromScreen;
+                //var arctangent = 2 * Math.Atan(tangent);
+                //var output = arctangent * (180 / Math.PI);
             }
 
             return velocities;

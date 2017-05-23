@@ -13,7 +13,8 @@ namespace GazeDataViewer.Classes.Saccade
         public int SpotEndIndex { get; set; }
         public int EyeStartIndex { get; set; }
         public int EyeEndIndex { get; set; }
-        public int FrameCount { get; set; }
+        public int DurationFrameCount { get; set; }
+        public int LatencyFrameCount { get; set; }
 
         public double Duration { get; set; }
         public double Latency { get; set; }

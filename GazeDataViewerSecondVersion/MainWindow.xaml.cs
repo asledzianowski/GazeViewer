@@ -206,9 +206,14 @@ namespace GazeDataViewer
 
                 if (currentEyeShiftIndex < results.PlotData.TimeStamps.Count() && currentSpotShiftIndex < results.PlotData.TimeStamps.Count())
                 {
-                    var saccItem = SaccadeDataHelper.GetSaccadePositionItem(i, currentEyeOverSpotIndex, currentEyeShiftIndex,
-                        spotOverMeanIndex, currentSpotShiftIndex, results);
-                    SaccadePositions.Add(saccItem);
+                    //var saccItem = SaccadeDataHelper.GetSaccadePositionItem(i, currentEyeOverSpotIndex, currentEyeShiftIndex,
+                    //    spotOverMeanIndex, currentSpotShiftIndex, results);
+
+                    var saccItem = SaccadeDataHelper.FindSaccade(i, spotOverMeanIndex, currentSpotShiftIndex, 7, 3, results.PlotData);
+                    if (saccItem != null)
+                    {
+                        SaccadePositions.Add(saccItem);
+                    }
                 }
             }
 
@@ -273,8 +278,10 @@ namespace GazeDataViewer
         {
             RemoveSaccadeMarkers();
             ApplySaccadePointMarkers(saccades);
-            ApplySaccadeTextMarkers(saccades.Select(x => x.SaccadeStartTime).ToList(), saccades.Select(x => x.SaccadeStartCoord).ToList(), "Start");
-            ApplySaccadeTextMarkers(saccades.Select(x => x.SaccadeEndTime).ToList(), saccades.Select(x => x.SaccadeEndCoord).ToList(), "End");
+            ApplySaccadeTextMarkers(saccades.Select(x => x.SaccadeStartTime).ToList(), saccades.Select(x => x.SaccadeStartCoord).ToList(),
+                saccades.Select(x => x.Id).ToList(), "Start");
+            ApplySaccadeTextMarkers(saccades.Select(x => x.SaccadeEndTime).ToList(), saccades.Select(x => x.SaccadeEndCoord).ToList(),
+                saccades.Select(x => x.Id).ToList(), "End");
             ApplySaccadeControls(saccades);
         }
 
@@ -311,8 +318,9 @@ namespace GazeDataViewer
         }
 
 
-        private void ApplySaccadeTextMarkers(List<double> arrayX, List<double> arrayY, string text)
+        private void ApplySaccadeTextMarkers(List<double> arrayX, List<double> arrayY, List<int> IDs, string text)
         {
+
             for (int i = 0; i < arrayX.Count; i++)
             {
                 var xDataSource = new EnumerableDataSource<double>(new double[1] { arrayX[i] });
@@ -324,7 +332,7 @@ namespace GazeDataViewer
 
                 var marker = new MarkerPointsGraph(saccadeStartCompositeDataSource);
                 var textMarker = new CenteredTextMarker();
-                textMarker.Text = $"{text} #{i}";
+                textMarker.Text = $"{text} #{IDs[i]}";
                 marker.Marker = textMarker;
                 marker.Name = $"Sacc{text}Label";
                 if (CBShowLabels.IsChecked == false)
@@ -492,19 +500,43 @@ namespace GazeDataViewer
                 sb.Append(Environment.NewLine);
                 sb.Append($"Spot Start Index: {result.SpotStartIndex}");
                 sb.Append(Environment.NewLine);
+                sb.Append($"Spot Start X: {CurrentResults.PlotData.SpotCoords[result.SpotStartIndex]}");
+                sb.Append(Environment.NewLine);
                 sb.Append($"Spot End Index: {result.SpotEndIndex}");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Spot End X: {CurrentResults.PlotData.SpotCoords[result.SpotEndIndex]}");
                 sb.Append(Environment.NewLine);
                 sb.Append($"Eye Start Index: {result.EyeStartIndex}");
                 sb.Append(Environment.NewLine);
+                sb.Append($"Eye Start X: {CurrentResults.PlotData.EyeCoords[result.EyeStartIndex]}");
+                sb.Append(Environment.NewLine);
                 sb.Append($"Eye End Index: {result.EyeEndIndex}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Frame Count: {result.FrameCount}");
+                sb.Append($"Eye End X: {CurrentResults.PlotData.EyeCoords[result.EyeEndIndex]}");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Latency Frame Count: {result.LatencyFrameCount}");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Duration Frame Count: {result.DurationFrameCount}");
+                sb.Append(Environment.NewLine);
+                sb.Append(Environment.NewLine);
+
+                sb.Append($"Eye/Spot Gain: {result.Gain} ");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Distance: {result.Distance}");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Latency: {result.Latency} sec");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Duration: {result.Duration} sec");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Visual Angle: {result.Amplitude} deg");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Average Velocity: {result.Velocity} deg/sec"); ;
                 sb.Append(Environment.NewLine);
                 sb.Append(Environment.NewLine);
 
                 sb.Append("Y Values:");
                 sb.Append(Environment.NewLine);
-                for (int i = result.EyeStartIndex; i < result.EyeStartIndex + result.FrameCount; i++)
+                for (int i = result.EyeStartIndex; i < result.EyeStartIndex + result.DurationFrameCount; i++)
                 {
                     sb.Append($"Index:{i} - Value: {CurrentResults.PlotData.EyeCoords[i]}");
                     sb.Append(Environment.NewLine);
@@ -513,29 +545,13 @@ namespace GazeDataViewer
                 sb.Append(Environment.NewLine);
                 sb.Append("X Values:");
                 sb.Append(Environment.NewLine);
-                for (int i = result.EyeStartIndex; i < result.EyeStartIndex + result.FrameCount; i++)
+                for (int i = result.EyeStartIndex; i < result.EyeStartIndex + result.DurationFrameCount; i++)
                 {
                     sb.Append($"Index:{i} - Time: {CurrentResults.PlotData.TimeStamps[i]}");
                     sb.Append(Environment.NewLine);
                 }
 
-                sb.Append(Environment.NewLine);
-                sb.Append($"Eye/Spot Gain: {result.Gain} ");
-                sb.Append(Environment.NewLine);
-                sb.Append($"Distance: {result.Distance} cm");
-                sb.Append(Environment.NewLine);
-                sb.Append($"Latency: {result.Latency} sec");
-                sb.Append(Environment.NewLine);
-                sb.Append($"Duration: {result.Duration} sec");
-                sb.Append(Environment.NewLine);
-                sb.Append($"Visual Angle: {result.Amplitude} deg");
-                sb.Append(Environment.NewLine);
-                sb.Append($"Velocity: {result.Velocity} deg/sec");
-                sb.Append(Environment.NewLine);
-                sb.Append($"Average Velocity: {result.AvgVelocity} deg/sec");
-                sb.Append(Environment.NewLine);
-                sb.Append($"Max Velocity: {result.MaxVelocity} deg/sec");
-                sb.Append(Environment.NewLine);
+               
                 sb.Append(Environment.NewLine);
             }
 

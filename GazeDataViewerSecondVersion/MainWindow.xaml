@@ -58,7 +58,7 @@
                 
                 <DockPanel Grid.Column="1" Grid.Row="0" HorizontalAlignment="Right" Background="LightGray" Width="Auto" Height="26">
 
-                    <TextBox Name="LoadDataPathTextBox" Width="400" Height="26"/>
+                    <TextBox Name="LoadDataPathTextBox" Width="580" Height="26" BorderThickness="0" Padding="0,5,5,0" Background="LightGray" HorizontalContentAlignment="Right"/>
                     <Button  Name="LoadDataButton" Content="Load Data" Click="LoadDataButton_Click"  Width="100" Height="26" ></Button>
                 </DockPanel>
             </Grid>
@@ -271,7 +271,7 @@
                             </Grid.RowDefinitions>
 
                             <Label Grid.Column="0" Grid.Row="0" Content="Start Rec. Index:" HorizontalAlignment="Right"></Label>
-                            <TextBox Grid.Column="1" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="5000" PreviewTextInput="NumberValidationTextBox" 
+                            <TextBox Grid.Column="1" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="4100" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBStartRec"
                              ></TextBox>
 
@@ -282,7 +282,7 @@
 
 
                             <Label Grid.Column="4" Grid.Row="0" Content="Spot/Eye Shift:" HorizontalAlignment="Right" ></Label>
-                            <TextBox Grid.Column="5" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="1" PreviewTextInput="NumberValidationTextBox" 
+                            <TextBox Grid.Column="5" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="2" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBEyeShiftPeroid"></TextBox>
 
                             <Label Grid.Column="6" Grid.Row="0" Content="Spot Start:" HorizontalAlignment="Right"></Label>
@@ -292,11 +292,11 @@
                             <!--Row 2-->
 
                             <Label Grid.Column="0" Grid.Row="1" Content="Eye Start Shift:" HorizontalAlignment="Right"></Label>
-                            <TextBox Grid.Column="1" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="2" PreviewTextInput="NumberValidationTextBox" 
+                            <TextBox Grid.Column="1" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="0" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSaccadeStartShiftPeroid"></TextBox>
 
                             <Label Grid.Column="2" Grid.Row="1" Content="Eye End Shift:" HorizontalAlignment="Right"></Label>
-                            <TextBox Grid.Column="3" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="1" PreviewTextInput="NumberValidationTextBox" 
+                            <TextBox Grid.Column="3" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="0" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSaccadeEndShiftPeroid"></TextBox>
 
                             <Label Grid.Column="4" Grid.Row="1" Content="Eye Amp Prop:" HorizontalAlignment="Right"></Label>
@@ -307,8 +307,8 @@
                             <TextBox Grid.Column="7" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="0.9" PreviewTextInput="DecimalValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSpotAmpProp"></TextBox>
 
-                            <Label Grid.Column="0" Grid.Row="2" HorizontalAlignment="Right" VerticalAlignment="Top" Content="Reduce on diff &gt;"></Label>
-                            <TextBox Grid.Column="1" Grid.Row="2" Height="25" Width="44" HorizontalAlignment="Left" Text="5" PreviewTextInput="NumberValidationTextBox" 
+                            <Label Grid.Column="0" Grid.Row="2" HorizontalAlignment="Right" VerticalAlignment="Top" Content="Latency:"></Label>
+                            <TextBox Grid.Column="1" Grid.Row="2" Height="25" Width="44" HorizontalAlignment="Left" Text="7" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBReduceEyeSpotAmpDiff"></TextBox>
 
                             <Button Name="BtnCalculate" Grid.Column="5" Grid.Row="2" Grid.ColumnSpan="3"  Content="Render Prediction" 
