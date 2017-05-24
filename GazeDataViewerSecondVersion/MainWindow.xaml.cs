@@ -169,7 +169,7 @@ namespace GazeDataViewer
             //    results.PlotData.Reye = Array.ConvertAll(fix.ToArray(), x => (float)x);
 
             //}
-            var timeAxisDataSource = new EnumerableDataSource<int>(results.PlotData.TimeStamps);
+            var timeAxisDataSource = new EnumerableDataSource<int>(results.PlotData.TimeDeltas);
             timeAxisDataSource.SetXMapping(x => x);
 
             var eyeDataSource = new EnumerableDataSource<double>(results.PlotData.EyeCoords);
@@ -204,7 +204,7 @@ namespace GazeDataViewer
                 var currentEyeShiftIndex = SaccadeDataHelper.CountEyeShiftIndex(currentEyeOverSpotIndex, results.PlotData.ShiftPeriod, calcCnfig.EyeEndShiftPeroid);
                 var currentSpotShiftIndex = SaccadeDataHelper.CountSpotShiftIndex(spotOverMeanIndex, results.PlotData.ShiftPeriod);
 
-                if (currentEyeShiftIndex < results.PlotData.TimeStamps.Count() && currentSpotShiftIndex < results.PlotData.TimeStamps.Count())
+                if (currentEyeShiftIndex < results.PlotData.TimeDeltas.Count() && currentSpotShiftIndex < results.PlotData.TimeDeltas.Count())
                 {
                     //var saccItem = SaccadeDataHelper.GetSaccadePositionItem(i, currentEyeOverSpotIndex, currentEyeShiftIndex,
                     //    spotOverMeanIndex, currentSpotShiftIndex, results);
@@ -228,10 +228,10 @@ namespace GazeDataViewer
 
             //fit to view with margins
             var yMargin = ((results.PlotData.EyeCoords.Max() - results.PlotData.EyeCoords.Min()) / 10);
-            var xMargin = ((results.PlotData.TimeStamps.Max() - results.PlotData.TimeStamps.Min()) / 20);
+            var xMargin = ((results.PlotData.TimeDeltas.Max() - results.PlotData.TimeDeltas.Min()) / 20);
 
-            var xMin = results.PlotData.TimeStamps.Min() - xMargin;
-            var xMax = results.PlotData.TimeStamps.Max() + xMargin;
+            var xMin = results.PlotData.TimeDeltas.Min() - xMargin;
+            var xMax = results.PlotData.TimeDeltas.Max() + xMargin;
             var yMin = results.PlotData.EyeCoords.Min() - yMargin;
             var yMax = results.PlotData.EyeCoords.Max() + yMargin;
 
@@ -502,17 +502,25 @@ namespace GazeDataViewer
                 sb.Append(Environment.NewLine);
                 sb.Append($"Spot Start X: {CurrentResults.PlotData.SpotCoords[result.SpotStartIndex]}");
                 sb.Append(Environment.NewLine);
+                sb.Append($"Spot Start Time: {CurrentResults.PlotData.TimeStamps[result.SpotStartIndex]}");
+                sb.Append(Environment.NewLine);
                 sb.Append($"Spot End Index: {result.SpotEndIndex}");
                 sb.Append(Environment.NewLine);
                 sb.Append($"Spot End X: {CurrentResults.PlotData.SpotCoords[result.SpotEndIndex]}");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Spot End Time: {CurrentResults.PlotData.TimeStamps[result.SpotEndIndex]}");
                 sb.Append(Environment.NewLine);
                 sb.Append($"Eye Start Index: {result.EyeStartIndex}");
                 sb.Append(Environment.NewLine);
                 sb.Append($"Eye Start X: {CurrentResults.PlotData.EyeCoords[result.EyeStartIndex]}");
                 sb.Append(Environment.NewLine);
+                sb.Append($"Eye Start Time: {CurrentResults.PlotData.TimeStamps[result.EyeStartIndex]}");
+                sb.Append(Environment.NewLine);
                 sb.Append($"Eye End Index: {result.EyeEndIndex}");
                 sb.Append(Environment.NewLine);
                 sb.Append($"Eye End X: {CurrentResults.PlotData.EyeCoords[result.EyeEndIndex]}");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Eye End Time: {CurrentResults.PlotData.TimeStamps[result.EyeEndIndex]}");
                 sb.Append(Environment.NewLine);
                 sb.Append($"Latency Frame Count: {result.LatencyFrameCount}");
                 sb.Append(Environment.NewLine);
@@ -547,7 +555,7 @@ namespace GazeDataViewer
                 sb.Append(Environment.NewLine);
                 for (int i = result.EyeStartIndex; i < result.EyeStartIndex + result.DurationFrameCount; i++)
                 {
-                    sb.Append($"Index:{i} - Time: {CurrentResults.PlotData.TimeStamps[i]}");
+                    sb.Append($"Index:{i} - Time: {CurrentResults.PlotData.TimeDeltas[i]}");
                     sb.Append(Environment.NewLine);
                 }
 
@@ -921,19 +929,19 @@ namespace GazeDataViewer
                 Id = currentId,
                 SaccadeStartIndex = eyeStartIndex,
                 SaccadeStartCoord = CurrentResults.PlotData.EyeCoords[eyeStartIndex],
-                SaccadeStartTime = CurrentResults.PlotData.TimeStamps[eyeStartIndex],
+                SaccadeStartTime = CurrentResults.PlotData.TimeDeltas[eyeStartIndex],
 
                 SaccadeEndIndex = eyeMoveEndIndex,
                 SaccadeEndCoord = CurrentResults.PlotData.EyeCoords[eyeMoveEndIndex],
-                SaccadeEndTime = CurrentResults.PlotData.TimeStamps[eyeMoveEndIndex],
+                SaccadeEndTime = CurrentResults.PlotData.TimeDeltas[eyeMoveEndIndex],
 
                 SpotStartIndex = spotStartIndex,
                 SpotStartCoord = CurrentResults.PlotData.SpotCoords[spotStartIndex],
-                SpotStartTime = CurrentResults.PlotData.TimeStamps[spotStartIndex],
+                SpotStartTime = CurrentResults.PlotData.TimeDeltas[spotStartIndex],
 
                 SpotEndIndex = spotShiftIndex,
                 SpotEndCoord = CurrentResults.PlotData.SpotCoords[spotShiftIndex],
-                SpotEndTime = CurrentResults.PlotData.TimeStamps[spotShiftIndex]
+                SpotEndTime = CurrentResults.PlotData.TimeDeltas[spotShiftIndex]
             });
 
             currentId++;

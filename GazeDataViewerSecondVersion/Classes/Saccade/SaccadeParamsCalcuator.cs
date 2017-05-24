@@ -75,21 +75,21 @@ namespace GazeDataViewer.Classes.Saccade
             //var visualAngle1 = Math.Round((Math.Atan2(this.distanceFromScreen, 7) * 10), 0);
             //var visualAngle2 = Math.Round((Math.Atan2(this.distanceFromScreen, 70) * 10), 0);
 
-            var frameCount =  Math.Abs(saccadePosition.SaccadeEndIndex - saccadePosition.SaccadeStartIndex) + 1;
+            var frameCount = Math.Abs(saccadePosition.SaccadeEndIndex - saccadePosition.SaccadeStartIndex); //+ 1;
 
 
             double[] saccadeCoords;
             
             if(eyeCoords.Length > 1)
             {
-                saccadeCoords = eyeCoords.Skip(saccadePosition.SaccadeStartIndex).Take(frameCount).ToArray();
+                saccadeCoords = eyeCoords.Skip(saccadePosition.SaccadeStartIndex).Take(Math.Abs(saccadePosition.SaccadeEndIndex - saccadePosition.SaccadeStartIndex) + 1).ToArray();
             }    
             else
             {
                 saccadeCoords = eyeCoords;
             }
                 
-            var spotLenght = (saccadePosition.SpotEndIndex - saccadePosition.SpotStartIndex) + 1;
+            var spotLenght = (saccadePosition.SpotEndIndex - saccadePosition.SpotStartIndex) ;
             var spotMove = spotCoords.Skip(saccadePosition.SpotStartIndex).Take(spotLenght).ToArray();
 
             var eyeMoveDistanceOnScreen = CountOnScreenDistance(saccadeCoords) ;

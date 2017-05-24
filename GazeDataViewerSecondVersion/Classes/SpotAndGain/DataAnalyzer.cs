@@ -30,7 +30,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
 
             // dane od recStart
             var recLenght = (recEnd - recStart);
-            var timeStamps = timeSpans.Skip(recStart).Take(recLenght).ToArray();
+            var timeDeltas = timeSpans.Skip(recStart).Take(recLenght).ToArray();
             var eyeCoords = fileData.Eye.Skip(recStart).Take(recLenght).ToArray();
             var spotCoords = fileData.Spot.Skip(recStart).Take(recLenght).ToArray();
 
@@ -96,7 +96,8 @@ namespace GazeDataViewer.Classes.SpotAndGain
                 EyeCoords = eyeCoords,
                 ShiftPeriod = eyeShiftPeriod,
                 SpotCoords = spotCoords,
-                TimeStamps = timeStamps
+                TimeDeltas = timeDeltas,
+                TimeStamps = fileData.Time
 
             };
 

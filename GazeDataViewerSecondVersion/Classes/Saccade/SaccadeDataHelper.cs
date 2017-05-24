@@ -15,19 +15,19 @@ namespace GazeDataViewer.Classes.Saccade
             {
                 Id = id,
                 SaccadeStartIndex = saccadeStartIndex,
-                SaccadeStartTime = results.PlotData.TimeStamps[saccadeStartIndex],
+                SaccadeStartTime = results.PlotData.TimeDeltas[saccadeStartIndex],
                 SaccadeStartCoord = results.PlotData.EyeCoords[saccadeStartIndex],
 
                 SaccadeEndIndex = saccadeEndIndex,
-                SaccadeEndTime = results.PlotData.TimeStamps[saccadeEndIndex],
+                SaccadeEndTime = results.PlotData.TimeDeltas[saccadeEndIndex],
                 SaccadeEndCoord = results.PlotData.EyeCoords[saccadeEndIndex],
 
                 SpotStartIndex = spotOverMeanStartIndex,
-                SpotStartTime = results.PlotData.TimeStamps[spotOverMeanStartIndex],
+                SpotStartTime = results.PlotData.TimeDeltas[spotOverMeanStartIndex],
                 SpotStartCoord = results.PlotData.SpotCoords[spotOverMeanStartIndex],
 
                 SpotEndIndex = spotOverMeanEndIndex,
-                SpotEndTime = results.PlotData.TimeStamps[spotOverMeanEndIndex],
+                SpotEndTime = results.PlotData.TimeDeltas[spotOverMeanEndIndex],
                 SpotEndCoord = results.PlotData.SpotCoords[spotOverMeanEndIndex],
 
             };
@@ -41,11 +41,11 @@ namespace GazeDataViewer.Classes.Saccade
             {
                 Id = id,
                 SaccadeStartIndex = saccadeStartIndex,
-                SaccadeStartTime = results.PlotData.TimeStamps[saccadeStartIndex],
+                SaccadeStartTime = results.PlotData.TimeDeltas[saccadeStartIndex],
                 SaccadeStartCoord = results.PlotData.EyeCoords[saccadeStartIndex],
 
                 SaccadeEndIndex = saccadeEndIndex,
-                SaccadeEndTime = results.PlotData.TimeStamps[saccadeEndIndex],
+                SaccadeEndTime = results.PlotData.TimeDeltas[saccadeEndIndex],
                 SaccadeEndCoord = results.PlotData.EyeCoords[saccadeEndIndex],
 
                 SpotStartIndex = spotOverMeanStartIndex,
@@ -136,8 +136,43 @@ namespace GazeDataViewer.Classes.Saccade
                     var firstVelocityWindow = windowVelocitiesOverControl.First();
                     var firstWindow = eyeStartWindows.First(x => x.Key == firstVelocityWindow.Key);
                     var firstWindowFrameDistances = CalculateDistances(firstWindow.Value);
-                    var firstWindowMaxFrameDistance = firstWindowFrameDistances.Max();
-                    var firstWindowMaxFrameDistanceIndex = Array.IndexOf(firstWindowFrameDistances, firstWindowMaxFrameDistance);
+
+                    var eyeFixatedCoords = results.EyeCoords.Skip(spotStartIndex- 12).Take(minDuration).ToArray();
+                    var eyeFixatedDistances = CalculateDistances(eyeFixatedCoords);
+                    var eyeFixatedDistancesAverge = eyeFixatedDistances.Average();
+
+                    //var distancesFix = new List<double>();
+                    //foreach(var window in windowsBeforeSpot)
+                    //{
+                    //    var distances = CalculateDistances(window);
+                    //    distancesFix.Add(distances.Average());
+                    //}
+                    //var distancesFixAvg = distancesFix.Average();
+
+
+
+                   var firstWindowMaxFrameDistanceIndex = -1;
+                    for (int o = 0; o < firstWindowFrameDistances.Count(); o ++)
+                    {
+                        var currentDistance = firstWindowFrameDistances[o];
+                        if(currentDistance > (eyeFixatedDistancesAverge * 3))
+                        {
+                            firstWindowMaxFrameDistanceIndex = o;
+                            break;
+                        }
+                    }
+
+                    if(firstWindowMaxFrameDistanceIndex == -1)
+                    {
+                        firstWindowMaxFrameDistanceIndex =  firstWindowFrameDistances.ToList().IndexOf(firstWindowFrameDistances.Max());
+                    }
+                    //double? firstWindowMaxFrameDistance = firstWindowFrameDistances.FirstOrDefault(x => x > (eyeFixatedDistancesAverge * 10));
+
+                    //if (firstWindowMaxFrameDistance == null)
+                    //{
+                    //    firstWindowMaxFrameDistance = firstWindowFrameDistances.Max();
+                    //}
+                    //var firstWindowMaxFrameDistanceIndex = Array.IndexOf(firstWindowFrameDistances, firstWindowMaxFrameDistance);
                     
                     var startIndexByVelocityWindow = eyeStartIndex + (10 * firstVelocityWindow.Key );
                     saccadeStartIndex = startIndexByVelocityWindow + firstWindowMaxFrameDistanceIndex ;
@@ -176,19 +211,19 @@ namespace GazeDataViewer.Classes.Saccade
                         Id = id,
 
                         SaccadeStartIndex = saccadeStartIndex,
-                        SaccadeStartTime = results.TimeStamps[saccadeStartIndex],
+                        SaccadeStartTime = results.TimeDeltas[saccadeStartIndex],
                         SaccadeStartCoord = results.EyeCoords[saccadeStartIndex],
 
                         SaccadeEndIndex = saccadeEndIndex,
-                        SaccadeEndTime = results.TimeStamps[saccadeEndIndex],
+                        SaccadeEndTime = results.TimeDeltas[saccadeEndIndex],
                         SaccadeEndCoord = results.EyeCoords[saccadeEndIndex],
 
                         SpotStartIndex = spotStartIndex,
-                        SpotStartTime = results.TimeStamps[spotStartIndex],
+                        SpotStartTime = results.TimeDeltas[spotStartIndex],
                         SpotStartCoord = results.SpotCoords[spotStartIndex],
 
                         SpotEndIndex = spotEndIndex,
-                        SpotEndTime = results.TimeStamps[spotEndIndex],
+                        SpotEndTime = results.TimeDeltas[spotEndIndex],
                         SpotEndCoord = results.SpotCoords[spotEndIndex],
 
                     };
@@ -200,20 +235,20 @@ namespace GazeDataViewer.Classes.Saccade
                         Id = id,
 
                         SaccadeStartIndex = eyeStartIndex,
-                        SaccadeStartTime = results.TimeStamps[eyeStartIndex],
+                        SaccadeStartTime = results.TimeDeltas[eyeStartIndex],
                         SaccadeStartCoord = results.EyeCoords[eyeStartIndex],
 
                         SaccadeEndIndex = eyeStartIndex + 3,
-                        SaccadeEndTime = results.TimeStamps[eyeStartIndex + 3],
+                        SaccadeEndTime = results.TimeDeltas[eyeStartIndex + 3],
                         SaccadeEndCoord = results.EyeCoords[eyeStartIndex + 3],
 
 
                         SpotStartIndex = spotStartIndex,
-                        SpotStartTime = results.TimeStamps[spotStartIndex],
+                        SpotStartTime = results.TimeDeltas[spotStartIndex],
                         SpotStartCoord = results.SpotCoords[spotStartIndex],
 
                         SpotEndIndex = spotEndIndex,
-                        SpotEndTime = results.TimeStamps[spotEndIndex],
+                        SpotEndTime = results.TimeDeltas[spotEndIndex],
                         SpotEndCoord = results.SpotCoords[spotEndIndex],
 
                     };
@@ -226,19 +261,19 @@ namespace GazeDataViewer.Classes.Saccade
                     Id = id,
 
                     SaccadeStartIndex = eyeStartIndex,
-                    SaccadeStartTime = results.TimeStamps[eyeStartIndex],
+                    SaccadeStartTime = results.TimeDeltas[eyeStartIndex],
                     SaccadeStartCoord = results.EyeCoords[eyeStartIndex],
 
                     SaccadeEndIndex = eyeStartIndex + 3,
-                    SaccadeEndTime = results.TimeStamps[eyeStartIndex + 3],
+                    SaccadeEndTime = results.TimeDeltas[eyeStartIndex + 3],
                     SaccadeEndCoord = results.EyeCoords[eyeStartIndex + 3],
 
                     SpotStartIndex = spotStartIndex,
-                    SpotStartTime = results.TimeStamps[spotStartIndex],
+                    SpotStartTime = results.TimeDeltas[spotStartIndex],
                     SpotStartCoord = results.SpotCoords[spotStartIndex],
 
                     SpotEndIndex = spotEndIndex,
-                    SpotEndTime = results.TimeStamps[spotEndIndex],
+                    SpotEndTime = results.TimeDeltas[spotEndIndex],
                     SpotEndCoord = results.SpotCoords[spotEndIndex],
 
                 };

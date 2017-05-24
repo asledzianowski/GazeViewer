@@ -15,6 +15,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
     public class PlotData
     {
         public int[] TimeStamps { get; set; }
+        public int[] TimeDeltas { get; set; }
         public List<int> EarliestEyeOverSpotIndex { get; set; }
         public List<int> SpotOverMeanIndex { get; set; }
         public double[] EyeCoords { get; set; }
