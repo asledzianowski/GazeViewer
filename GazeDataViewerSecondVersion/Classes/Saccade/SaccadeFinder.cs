@@ -40,19 +40,22 @@ namespace GazeDataViewer.Classes.Saccade
 
             var eyeStartIndex = spotStartIndex + latency;
             var saccadeStartFindCoords = results.EyeCoords.Skip(eyeStartIndex).Take(saccadeFindWindowLength).ToArray();
-
+            var isRising = IsRising(spotStartOscilationXPosition, spotEndOscilationXPosition);
 
             var startCoordBySpotPosition = GetByStartIndexByCoords(saccadeStartFindCoords, eyeStartIndex, 
-                spotStartOscilationXPosition, spotEndOscilationXPosition, meanControlAmplitude);
+                spotStartOscilationXPosition, meanControlAmplitude, isRising);
 
             var saccadeStartIndex = startCoordBySpotPosition;
-            var endWindowStartIndex = saccadeStartIndex + minDuration;
 
-            var endWindowCoords = results.EyeCoords.Skip(endWindowStartIndex).Take(30).ToArray();
+            var endIndex = GetEndByDirectionChange(saccadeStartFindCoords, saccadeStartIndex, spotStartOscilationXPosition,
+                spotEndOscilationXPosition, isRising);
+
+           //var endWindowStartIndex = saccadeStartIndex + minDuration;
+            //var endWindowCoords = results.EyeCoords.Skip(endWindowStartIndex).Take(30).ToArray();
 
             // hamowanie odwrotne
 
-            var saccadeEndIndex = endWindowStartIndex;
+            var saccadeEndIndex = endIndex;
 
             if (saccadeStartIndex > results.EyeCoords.Length)
             {
@@ -86,33 +89,67 @@ namespace GazeDataViewer.Classes.Saccade
         }
 
         private int GetByStartIndexByCoords(double[] startCoords, int eyeStartIndex, double spotStartOscilationXPosition, 
-            double spotEndOscilationXPosition, double controlAmp)
+             double controlAmp, bool isRising)
         {
             int saccadeStartIndex = eyeStartIndex;
             var checkCount = 0;
             var checkCountMaxValue = 2;
             double? previousValue = null;
 
-            if (spotStartOscilationXPosition == 0 && spotEndOscilationXPosition == 1
-                || spotStartOscilationXPosition == -1 && spotEndOscilationXPosition == 0)
-            {
-                SetEyeStartAfterSpotPosition(ref startCoords, ref eyeStartIndex, spotStartOscilationXPosition, true, controlAmp);
-
-            }
-            else 
-            {
-                SetEyeStartAfterSpotPosition(ref startCoords, ref eyeStartIndex, spotStartOscilationXPosition, false, controlAmp);
-            }
+            SetEyeStartAfterSpotPosition(ref startCoords, ref eyeStartIndex, spotStartOscilationXPosition, isRising, controlAmp);
 
             saccadeStartIndex = eyeStartIndex;
             return saccadeStartIndex;
         }
 
-
-        private void GetEndByDirectionChange(double[] startCoords, int eyeStartIndex, double spotStartOscilationXPosition,
-           double spotEndOscilationXPosition, double controlAmp)
+        private bool IsRising(double spotStartOscilationXPosition, double spotEndOscilationXPosition)
         {
-            var endWindowStartIndex = eyeStartIndex + 3;
+            if (spotStartOscilationXPosition == 0 && spotEndOscilationXPosition == 1
+               || spotStartOscilationXPosition == -1 && spotEndOscilationXPosition == 0)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private int GetEndByDirectionChange(double[] startCoords, int eyeStartIndex, double spotStartOscilationXPosition,
+           double spotEndOscilationXPosition, bool isRising)
+        {
+            var minDuration = 3;
+            var previousCord = startCoords[minDuration - 1];
+            startCoords = startCoords.Skip(minDuration).ToArray();
+            int endIndex = eyeStartIndex + minDuration; 
+
+            for(int i = 0; i < startCoords.Length; i++)
+            {
+                var currentCord = startCoords[i];
+                var isEndIndex = false;
+
+
+                if(isRising)
+                {
+                    isEndIndex = currentCord < previousCord;
+                }
+                else
+                {
+                    isEndIndex = currentCord > previousCord;
+                }
+
+                if (isEndIndex)
+                {
+                    endIndex = endIndex + i;
+                    break;
+                }
+                else
+                {
+                    previousCord = currentCord;
+                }
+            }
+
+            return endIndex;
         }
 
         private void SetEyeStartAfterSpotPosition(ref double[] startCoords, ref int eyeStartIndex, double spotStartX, bool isRising, double controlAmp)
