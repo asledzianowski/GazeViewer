@@ -6,22 +6,15 @@ using System.Threading.Tasks;
 
 namespace GazeDataViewer.Classes.SpotAndGain
 {
+
     public class SpotGazeFileData
     {
-        public int[] Time { get; }
+        public int[] Time { get; set; }
 
-        public double[] Eye { get; }
+        public double[] Eye { get; set; }
 
-        public double[] Spot { get; }
+        public double[] Spot { get; set; }
 
-        public int originalLenght { get; }
 
-        public SpotGazeFileData(int lenght)
-        {
-            Time = new int[lenght];
-            Eye = new double[lenght];
-            Spot = new double[lenght];
-            originalLenght = lenght;
-        }
     }
 }

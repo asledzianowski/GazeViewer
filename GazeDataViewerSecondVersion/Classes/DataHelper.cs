@@ -23,6 +23,16 @@ namespace GazeDataViewer.Classes
             return (path.EndsWith(".txt") || path.EndsWith(".csv"));
         }
 
+        /// <summary>
+        /// Checks if file contains acceptable data file extention  
+        /// </summary>
+        /// <param name="path">the file path</param>
+        /// <returns>Is acceptable data file extention</returns>
+        public static bool IsStateDataExtention(string path)
+        {
+            return path.EndsWith(".xml");
+        }
+
 
         /// <summary>
         /// Reads and converts data to domain class collection. 
@@ -117,7 +127,11 @@ namespace GazeDataViewer.Classes
             var fileText = fileDataStream.ReadToEnd();
             var lines = fileText.Split('\n');
 
-            var outputData = new SpotGazeFileData(lines.Length -1); 
+            var outputData = new SpotGazeFileData();
+            outputData.Time = new int[lines.Length - 1];
+            outputData.Eye = new double[lines.Length - 1];
+            outputData.Spot = new double[lines.Length - 1];
+
 
             for (int i=0; i < lines.Length-1; i++)
             {

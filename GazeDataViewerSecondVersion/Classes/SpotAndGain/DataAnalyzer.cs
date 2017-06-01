@@ -71,7 +71,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
                 // dla każdego rekordu spot powyżej amplitudy, obliczamy różnicę dla rekordów amplitudy oczu
                 // bieżemy tylko indeksy wartości z różnicą więszą niż 5
                 var currSpotAmplitudeOverMeanIndex = spotAmplitudeOverMeanIndexes[i];
-                var reducedREyeOverAmpIndexesForCurrSpot = GetReducePointIndexes(rightEyeOverMeanSpotAmplitudeIndexes, currSpotAmplitudeOverMeanIndex, calcConfig.ReductMinEyeSpotAmpDiff);
+                var reducedREyeOverAmpIndexesForCurrSpot = GetReducePointIndexes(rightEyeOverMeanSpotAmplitudeIndexes, currSpotAmplitudeOverMeanIndex, calcConfig.MinLatency);
                
                 // dla każdego indeksu zredukowanego punktu
                 if (reducedREyeOverAmpIndexesForCurrSpot.Count > 0)
@@ -270,7 +270,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
             return stime.ToArray();
         }
 
-        private static int[] GetDeltaTimespansInt(int[] timestamps)
+        public static int[] GetDeltaTimespansInt(int[] timestamps)
         {
             var startTime = timestamps[0];
             var stime = new List<int>();

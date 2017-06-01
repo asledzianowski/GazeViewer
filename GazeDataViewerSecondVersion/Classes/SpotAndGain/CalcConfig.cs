@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace GazeDataViewer.Classes.SpotAndGain
 {
+    [Serializable]
     public class CalcConfig
     {
         public int RecStart { get; set; } = 0;
@@ -15,7 +16,8 @@ namespace GazeDataViewer.Classes.SpotAndGain
         public int EyeEndShiftPeroid { get; set; } = 0;
         public double EyeAmpProp { get; set; } = 0.0;
         public double SpotAmpProp { get; set; } = 0.0;
-        public int ReductMinEyeSpotAmpDiff { get; set; } = 5;
-        
+        public int MinLatency { get; set; } = 0;
+        public int MinDuration { get; set; } = 0;
+
     }
 }

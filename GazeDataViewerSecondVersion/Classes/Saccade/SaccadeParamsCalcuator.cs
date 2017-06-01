@@ -92,8 +92,8 @@ namespace GazeDataViewer.Classes.Saccade
             var spotLenght = (saccadePosition.SpotEndIndex - saccadePosition.SpotStartIndex) ;
             var spotMove = spotCoords.Skip(saccadePosition.SpotStartIndex).Take(spotLenght).ToArray();
 
-            var eyeMoveDistanceOnScreen = CountOnScreenDistance(saccadeCoords) ;
-            var spotMoveDistanceOnScreen = CountOnScreenDistance(spotMove) ;
+            var eyeMoveDistanceOnScreen = CountOnScreenDistance(saccadeCoords)  ;
+            var spotMoveDistanceOnScreen = CountOnScreenDistance(spotMove);
 
             var eyeMoveVisualAngle = Math.Round((Math.Atan2(this.distanceFromScreen, eyeMoveDistanceOnScreen) * 10) ,0);
             var spotMoveVisualAngle = Math.Round((Math.Atan2(this.distanceFromScreen, spotMoveDistanceOnScreen) * 10), 0);
@@ -133,7 +133,7 @@ namespace GazeDataViewer.Classes.Saccade
                 DurationFrameCount = Convert.ToInt32(frameCount),
                 Latency = Math.Round(latency,3),
                 Duration = Math.Round(duration, 3),
-                Distance = Math.Round(eyeMoveDistanceOnScreen, 3),
+                Distance = Math.Round(eyeMoveDistanceOnScreen, 3) * 10,
                 Amplitude = Math.Round(eyeMoveVisualAngle, 3),
                 Velocity = Math.Round(velocity, 0),
                 //MaxVelocity = Math.Round(velocities.Max(),3),

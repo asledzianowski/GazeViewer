@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace GazeDataViewer.Classes.Saccade
 {
+    [Serializable]
     public class SaccadePosition
     {
         public int Id { get; set; }

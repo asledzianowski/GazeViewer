@@ -7,6 +7,7 @@ using static GazeDataViewer.Classes.Denoise.FilterButterworth;
 
 namespace GazeDataViewer.Classes.Denoise
 {
+    [Serializable]
     public class FiltersConfig
     {
         public bool FilterByButterworth { get; set; }
