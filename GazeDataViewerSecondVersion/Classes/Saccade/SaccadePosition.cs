@@ -11,10 +11,12 @@ namespace GazeDataViewer.Classes.Saccade
     {
         public int Id { get; set; }
 
+        public bool IsStartFound { get; set; }
         public int SaccadeStartIndex { get; set; }
         public double SaccadeStartTime { get; set; }
         public double SaccadeStartCoord { get; set; }
 
+        public bool IsEndFound { get; set; }
         public int SaccadeEndIndex { get; set; }
         public double SaccadeEndTime { get; set; }
         public double SaccadeEndCoord { get; set; }

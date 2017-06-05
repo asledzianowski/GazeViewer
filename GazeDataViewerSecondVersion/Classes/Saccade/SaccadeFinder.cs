@@ -42,19 +42,16 @@ namespace GazeDataViewer.Classes.Saccade
             var saccadeStartFindCoords = results.EyeCoords.Skip(eyeStartIndex).Take(saccadeFindWindowLength).ToArray();
             var isRising = IsRising(spotStartOscilationXPosition, spotEndOscilationXPosition);
 
-            //SetEyeStartAfterSpotPosition(ref saccadeStartFindCoords, ref eyeStartIndex, 
-            //    spotStartOscilationXPosition, controlMinCord, controlMaxCord, isRising, meanControlAmplitude);
+           
+            bool isStartFound = false;
+                FindStartByMoveDirection(ref saccadeStartFindCoords, ref eyeStartIndex,
+                spotStartOscilationXPosition, controlMinCord, controlMaxCord, isRising, meanControlAmplitude, ref isStartFound);
 
-            FindStartByMoveDirection(ref saccadeStartFindCoords, ref eyeStartIndex,
-                spotStartOscilationXPosition, controlMinCord, controlMaxCord, isRising, meanControlAmplitude);
-
-            //var saccadeStartIndex = startCoordBySpotPosition;
-
+            bool isEndFound = false;
             var endIndex = GetEndByDirectionChange(saccadeStartFindCoords, eyeStartIndex, spotStartOscilationXPosition,
-                spotEndOscilationXPosition, isRising);
+                spotEndOscilationXPosition, isRising, ref isEndFound);
 
-            //var endWindowStartIndex = saccadeStartIndex + minDuration;
-            //var endWindowCoords = results.EyeCoords.Skip(endWindowStartIndex).Take(30).ToArray();
+
 
             // hamowanie odwrotne
             var saccadeStartIndex = eyeStartIndex;
@@ -70,10 +67,12 @@ namespace GazeDataViewer.Classes.Saccade
                 {
                     Id = id,
 
+                    IsStartFound = isStartFound,
                     SaccadeStartIndex = saccadeStartIndex,
                     SaccadeStartTime = results.TimeDeltas[saccadeStartIndex],
                     SaccadeStartCoord = results.EyeCoords[saccadeStartIndex],
 
+                    IsEndFound = isEndFound,
                     SaccadeEndIndex = saccadeEndIndex,
                     SaccadeEndTime = results.TimeDeltas[saccadeEndIndex],
                     SaccadeEndCoord = results.EyeCoords[saccadeEndIndex],
@@ -106,7 +105,7 @@ namespace GazeDataViewer.Classes.Saccade
         }
 
         private int GetEndByDirectionChange(double[] startCoords, int eyeStartIndex, double spotStartOscilationXPosition,
-           double spotEndOscilationXPosition, bool isRising)
+           double spotEndOscilationXPosition, bool isRising, ref bool isEndFound)
         {
             var minDuration = 3;
             int endIndex = eyeStartIndex + minDuration;
@@ -141,6 +140,7 @@ namespace GazeDataViewer.Classes.Saccade
 
                         if (isEndIndex)
                         {
+                            isEndFound = true;
                             if (i > 0)
                             {
                                 if (isEndCorrection)
@@ -164,63 +164,15 @@ namespace GazeDataViewer.Classes.Saccade
             return endIndex;
         }
 
-        private void SetEyeStartAfterSpotPosition(ref double[] startCoords, ref int eyeStartIndex, double spotStartX, 
-            double controlMin, double controlMax,  bool isRising, double controlAmp)
-        {
-            if (isRising)
-            {
-                if (startCoords.First() < spotStartX)
-                {
-                    for (int i = 0; i < startCoords.Length; i++)
-                    {
-                        if (startCoords[i] > spotStartX)
-                        {
-                            eyeStartIndex = eyeStartIndex + i;
-                            startCoords = startCoords.Skip(i).ToArray();
-                            FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, spotStartX, controlMin, controlMax,
-                                isRising, controlAmp);
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, spotStartX, controlMin, controlMax,
-                        isRising, controlAmp);
-                }
-            }
-            else
-            {
-                if (startCoords.First() > spotStartX)
-                {
-                    for (int j = 0; j < startCoords.Length; j++)
-                    {
-                        if (startCoords[j] < spotStartX)
-                        {
-                            eyeStartIndex = eyeStartIndex + j;
-                            startCoords = startCoords.Skip(j).ToArray();
-                            FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, spotStartX, controlMin, controlMax,
-                                isRising, controlAmp);
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, spotStartX, controlMin, controlMax,
-                        isRising, controlAmp);
-                }
-            }
-        }
+
 
         private void FindStartByMoveDirection(ref double[] startCoords, ref int eyeStartIndex, double spotStartX,
-             double controlMin, double controlMax, bool isRising, double controlAmp)
+             double controlMin, double controlMax, bool isRising, double controlAmp, ref bool isStartFound)
         {
             var firstSaccadeFrameIndx = 0;
             var secondSaccadeFrameIndx = 1;
             var thirdSaccadeFrameIndx = 2;
             int? lastProperMoveStartIndex = null; 
-            bool isStartFound = false;
 
             for (int saccNum = 0; saccNum < startCoords.Length; saccNum++)
             {
@@ -245,7 +197,7 @@ namespace GazeDataViewer.Classes.Saccade
                         isCordsLength =  (startCoords[firstSaccadeFrameIndx] - startCoords[thirdSaccadeFrameIndx]) > 0.4;
                     }
 
-                    if (isCordsDirection /*&& lastProperMoveStartIndex == null*/)
+                    if (isCordsDirection && lastProperMoveStartIndex == null)
                     {
                         lastProperMoveStartIndex = firstSaccadeFrameIndx;
                     }
@@ -314,7 +266,54 @@ namespace GazeDataViewer.Classes.Saccade
             }
         }
 
-       
+        //private void SetEyeStartAfterSpotPosition(ref double[] startCoords, ref int eyeStartIndex, double spotStartX, 
+        //    double controlMin, double controlMax,  bool isRising, double controlAmp)
+        //{
+        //    if (isRising)
+        //    {
+        //        if (startCoords.First() < spotStartX)
+        //        {
+        //            for (int i = 0; i < startCoords.Length; i++)
+        //            {
+        //                if (startCoords[i] > spotStartX)
+        //                {
+        //                    eyeStartIndex = eyeStartIndex + i;
+        //                    startCoords = startCoords.Skip(i).ToArray();
+        //                    FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, spotStartX, controlMin, controlMax,
+        //                        isRising, controlAmp);
+        //                    break;
+        //                }
+        //            }
+        //        }
+        //        else
+        //        {
+        //            FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, spotStartX, controlMin, controlMax,
+        //                isRising, controlAmp);
+        //        }
+        //    }
+        //    else
+        //    {
+        //        if (startCoords.First() > spotStartX)
+        //        {
+        //            for (int j = 0; j < startCoords.Length; j++)
+        //            {
+        //                if (startCoords[j] < spotStartX)
+        //                {
+        //                    eyeStartIndex = eyeStartIndex + j;
+        //                    startCoords = startCoords.Skip(j).ToArray();
+        //                    FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, spotStartX, controlMin, controlMax,
+        //                        isRising, controlAmp);
+        //                    break;
+        //                }
+        //            }
+        //        }
+        //        else
+        //        {
+        //            FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, spotStartX, controlMin, controlMax,
+        //                isRising, controlAmp);
+        //        }
+        //    }
+        //}       
     }
 
 }
