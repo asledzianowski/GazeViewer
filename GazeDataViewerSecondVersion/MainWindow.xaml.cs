@@ -299,32 +299,57 @@ namespace GazeDataViewer
 
         private void ApplySaccadePointMarkers(List<SaccadePosition> saccades)
         {
-            var saccadeStartDataSource = new EnumerableDataSource<SaccadePosition>(saccades);
-            saccadeStartDataSource.SetXMapping(x => x.SaccadeStartTime);
-            saccadeStartDataSource.SetYMapping(x => x.SaccadeStartCoord);
 
-            var saccadeEndDataSource = new EnumerableDataSource<SaccadePosition>(saccades);
-            saccadeEndDataSource.SetXMapping(x => x.SaccadeEndTime);
-            saccadeEndDataSource.SetYMapping(x => x.SaccadeEndCoord);
+            var saccadeStartFoundDataSource = new EnumerableDataSource<SaccadePosition>(saccades.Where(x => x.IsStartFound == true));
+            saccadeStartFoundDataSource.SetXMapping(x => x.SaccadeStartTime);
+            saccadeStartFoundDataSource.SetYMapping(x => x.SaccadeStartCoord);
 
-            var marker = new MarkerPointsGraph(saccadeStartDataSource);
+            var saccadeStartNotFoundDataSource = new EnumerableDataSource<SaccadePosition>(saccades.Where(x => x.IsStartFound == false));
+            saccadeStartNotFoundDataSource.SetXMapping(x => x.SaccadeStartTime);
+            saccadeStartNotFoundDataSource.SetYMapping(x => x.SaccadeStartCoord);
+
+            var saccadeEndFoundDataSource = new EnumerableDataSource<SaccadePosition>(saccades.Where(x => x.IsEndFound == true));
+            saccadeEndFoundDataSource.SetXMapping(x => x.SaccadeEndTime);
+            saccadeEndFoundDataSource.SetYMapping(x => x.SaccadeEndCoord);
+
+            var saccadeEndNotFoundDataSource = new EnumerableDataSource<SaccadePosition>(saccades.Where(x => x.IsEndFound == false));
+            saccadeEndNotFoundDataSource.SetXMapping(x => x.SaccadeEndTime);
+            saccadeEndNotFoundDataSource.SetYMapping(x => x.SaccadeEndCoord);
+
+            var marker = new MarkerPointsGraph(saccadeStartFoundDataSource);
             var markPen = new CirclePointMarker();
             markPen.Pen = new Pen(Brushes.Chartreuse, 1);
             markPen.Size = 6;
             marker.Name = "SaccStart";
             markPen.Fill = Brushes.Chartreuse;
             marker.Marker = markPen;
-
             amplitudePlotter.Children.Add(marker);
 
-            marker = new MarkerPointsGraph(saccadeEndDataSource);
+            marker = new MarkerPointsGraph(saccadeStartNotFoundDataSource);
+            markPen = new CirclePointMarker();
+            markPen.Pen = new Pen(Brushes.Green, 1);
+            markPen.Size = 6;
+            marker.Name = "SaccStart";
+            markPen.Fill = Brushes.Green;
+            marker.Marker = markPen;
+            amplitudePlotter.Children.Add(marker);
+
+            marker = new MarkerPointsGraph(saccadeEndFoundDataSource);
             markPen = new CirclePointMarker();
             markPen.Pen = new Pen(Brushes.Gold, 1);
             markPen.Size = 6;
             marker.Name = "SaccEnd";
             markPen.Fill = Brushes.Gold;
             marker.Marker = markPen;
+            amplitudePlotter.Children.Add(marker);
 
+            marker = new MarkerPointsGraph(saccadeEndNotFoundDataSource);
+            markPen = new CirclePointMarker();
+            markPen.Pen = new Pen(Brushes.DarkOrange, 1);
+            markPen.Size = 6;
+            marker.Name = "SaccEnd";
+            markPen.Fill = Brushes.DarkOrange;
+            marker.Marker = markPen;
             amplitudePlotter.Children.Add(marker);
 
         }
