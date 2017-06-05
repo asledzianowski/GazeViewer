@@ -154,7 +154,7 @@ namespace GazeDataViewer
         {
 
             ApplyEyeSpotSinusoids(results.PlotData.TimeDeltas, results.PlotData.EyeCoords, results.PlotData.SpotCoords);
-            var saccadeFinder = new SaccadeFinder(40, 60, 30, 50);
+            var saccadeFinder = new SaccadeFinder(40, 60, 20, 50);
             SaccadePositions = new List<SaccadePosition>();
             for (int i = 0; i < results.PlotData.SpotOverMeanIndex.Count; i++)
             {
@@ -179,29 +179,29 @@ namespace GazeDataViewer
             }
 
 
-            var erliestPoints = new List<Point>();
+            //var erliestPoints = new List<Point>();
 
-            foreach(var index in results.PlotData.EarliestEyeOverSpotIndex)
-            {
-                erliestPoints.Add(new Point
-                {
-                    X = results.PlotData.TimeDeltas[index],
-                    Y = results.PlotData.EyeCoords[index]
-                });
-            }
+            //foreach(var index in results.PlotData.EarliestEyeOverSpotIndex)
+            //{
+            //    erliestPoints.Add(new Point
+            //    {
+            //        X = results.PlotData.TimeDeltas[index],
+            //        Y = results.PlotData.EyeCoords[index]
+            //    });
+            //}
 
-            var eyeDataSource = new EnumerableDataSource<Point>(erliestPoints);
-            eyeDataSource.SetXMapping(x => x.X);
-            eyeDataSource.SetYMapping(x => x.Y);
+            //var eyeDataSource = new EnumerableDataSource<Point>(erliestPoints);
+            //eyeDataSource.SetXMapping(x => x.X);
+            //eyeDataSource.SetYMapping(x => x.Y);
            
-            var marker = new MarkerPointsGraph(eyeDataSource);
-            var markPen = new CirclePointMarker();
-            markPen.Pen = new Pen(Brushes.DarkRed, 1);
-            markPen.Size = 6;
-            marker.Name = "SpotStart";
-            markPen.Fill = Brushes.DarkRed;
-            marker.Marker = markPen;
-            amplitudePlotter.Children.Add(marker);
+            //var marker = new MarkerPointsGraph(eyeDataSource);
+            //var markPen = new CirclePointMarker();
+            //markPen.Pen = new Pen(Brushes.DarkRed, 1);
+            //markPen.Size = 6;
+            //marker.Name = "SpotStart";
+            //markPen.Fill = Brushes.DarkRed;
+            //marker.Marker = markPen;
+            //amplitudePlotter.Children.Add(marker);
 
             ApplySpotPointMarkers(SaccadePositions);
             ApplySaccadeMarkersAndControls(SaccadePositions);
@@ -1035,7 +1035,7 @@ namespace GazeDataViewer
 
             var comboBox = sender as ComboBox;
             comboBox.ItemsSource = data;
-            comboBox.SelectedIndex = 0;
+            comboBox.SelectedIndex = 1;
         }
 
         private void BtnClearResults_Click(object sender, RoutedEventArgs e)

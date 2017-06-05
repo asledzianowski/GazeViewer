@@ -42,19 +42,22 @@ namespace GazeDataViewer.Classes.Saccade
             var saccadeStartFindCoords = results.EyeCoords.Skip(eyeStartIndex).Take(saccadeFindWindowLength).ToArray();
             var isRising = IsRising(spotStartOscilationXPosition, spotEndOscilationXPosition);
 
-            var startCoordBySpotPosition = GetByStartIndexByCoords(saccadeStartFindCoords, eyeStartIndex, 
-                spotStartOscilationXPosition, meanControlAmplitude, isRising);
+            //SetEyeStartAfterSpotPosition(ref saccadeStartFindCoords, ref eyeStartIndex, 
+            //    spotStartOscilationXPosition, controlMinCord, controlMaxCord, isRising, meanControlAmplitude);
 
-            var saccadeStartIndex = startCoordBySpotPosition;
+            FindStartByMoveDirection(ref saccadeStartFindCoords, ref eyeStartIndex,
+                spotStartOscilationXPosition, controlMinCord, controlMaxCord, isRising, meanControlAmplitude);
 
-            var endIndex = GetEndByDirectionChange(saccadeStartFindCoords, saccadeStartIndex, spotStartOscilationXPosition,
+            //var saccadeStartIndex = startCoordBySpotPosition;
+
+            var endIndex = GetEndByDirectionChange(saccadeStartFindCoords, eyeStartIndex, spotStartOscilationXPosition,
                 spotEndOscilationXPosition, isRising);
 
-           //var endWindowStartIndex = saccadeStartIndex + minDuration;
+            //var endWindowStartIndex = saccadeStartIndex + minDuration;
             //var endWindowCoords = results.EyeCoords.Skip(endWindowStartIndex).Take(30).ToArray();
 
             // hamowanie odwrotne
-
+            var saccadeStartIndex = eyeStartIndex;
             var saccadeEndIndex = endIndex;
 
             if (saccadeStartIndex > results.EyeCoords.Length)
@@ -88,19 +91,6 @@ namespace GazeDataViewer.Classes.Saccade
 
         }
 
-        private int GetByStartIndexByCoords(double[] startCoords, int eyeStartIndex, double spotStartOscilationXPosition, 
-             double controlAmp, bool isRising)
-        {
-            int saccadeStartIndex = eyeStartIndex;
-            var checkCount = 0;
-            var checkCountMaxValue = 2;
-            double? previousValue = null;
-
-            SetEyeStartAfterSpotPosition(ref startCoords, ref eyeStartIndex, spotStartOscilationXPosition, isRising, controlAmp);
-
-            saccadeStartIndex = eyeStartIndex;
-            return saccadeStartIndex;
-        }
 
         private bool IsRising(double spotStartOscilationXPosition, double spotEndOscilationXPosition)
         {
@@ -119,40 +109,63 @@ namespace GazeDataViewer.Classes.Saccade
            double spotEndOscilationXPosition, bool isRising)
         {
             var minDuration = 3;
-            var previousCord = startCoords[minDuration - 1];
-            startCoords = startCoords.Skip(minDuration).ToArray();
-            int endIndex = eyeStartIndex + minDuration; 
+            int endIndex = eyeStartIndex + minDuration;
+            bool isEndCorrection = false; 
 
-            for(int i = 0; i < startCoords.Length; i++)
+            if (startCoords.Length > minDuration + 1)
             {
-                var currentCord = startCoords[i];
-                var isEndIndex = false;
+                var previousCord = startCoords[minDuration];
+                startCoords = startCoords.Skip(minDuration + 1).ToArray();
+
+                for (int i = 0; i < startCoords.Length; i++)
+                {
+                    if (startCoords.Length > i + 1)
+                    {
+                        var currentCord = startCoords[i];
+                        var nextCord = startCoords[i + 1];
+                        var isEndIndex = false;
 
 
-                if(isRising)
-                {
-                    isEndIndex = currentCord < previousCord;
-                }
-                else
-                {
-                    isEndIndex = currentCord > previousCord;
-                }
+                        if (isRising)
+                        {
+                            isEndIndex = currentCord < previousCord; // && nextCord < currentCord;
+                            if(isEndIndex && currentCord > nextCord)
+                            {
+                                isEndCorrection = true;
+                            }
+                        }
+                        else
+                        {
+                            isEndIndex = currentCord > previousCord; //&& nextCord > currentCord;
+                        }
 
-                if (isEndIndex)
-                {
-                    endIndex = endIndex + i;
-                    break;
-                }
-                else
-                {
-                    previousCord = currentCord;
+                        if (isEndIndex)
+                        {
+                            if (i > 0)
+                            {
+                                if (isEndCorrection)
+                                {
+                                    endIndex = (endIndex + i) - 2;
+                                }
+                                else
+                                {
+                                    endIndex = (endIndex + i) - 1;
+                                }
+                            }
+                            break;
+                        }
+                        else
+                        {
+                            previousCord = currentCord;
+                        }
+                    }
                 }
             }
-
             return endIndex;
         }
 
-        private void SetEyeStartAfterSpotPosition(ref double[] startCoords, ref int eyeStartIndex, double spotStartX, bool isRising, double controlAmp)
+        private void SetEyeStartAfterSpotPosition(ref double[] startCoords, ref int eyeStartIndex, double spotStartX, 
+            double controlMin, double controlMax,  bool isRising, double controlAmp)
         {
             if (isRising)
             {
@@ -164,14 +177,16 @@ namespace GazeDataViewer.Classes.Saccade
                         {
                             eyeStartIndex = eyeStartIndex + i;
                             startCoords = startCoords.Skip(i).ToArray();
-                            FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, isRising, controlAmp);
+                            FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, spotStartX, controlMin, controlMax,
+                                isRising, controlAmp);
                             break;
                         }
                     }
                 }
                 else
                 {
-                    FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, isRising, controlAmp);
+                    FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, spotStartX, controlMin, controlMax,
+                        isRising, controlAmp);
                 }
             }
             else
@@ -184,164 +199,122 @@ namespace GazeDataViewer.Classes.Saccade
                         {
                             eyeStartIndex = eyeStartIndex + j;
                             startCoords = startCoords.Skip(j).ToArray();
-                            FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, isRising, controlAmp);
+                            FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, spotStartX, controlMin, controlMax,
+                                isRising, controlAmp);
                             break;
                         }
                     }
                 }
                 else
                 {
-                    FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, isRising, controlAmp);
+                    FindStartByMoveDirection(ref startCoords, ref eyeStartIndex, spotStartX, controlMin, controlMax,
+                        isRising, controlAmp);
                 }
             }
         }
 
-        private void FindStartByMoveDirection(ref double[] startCoords, ref int eyeStartIndex, bool isRising, double controlAmp)
+        private void FindStartByMoveDirection(ref double[] startCoords, ref int eyeStartIndex, double spotStartX,
+             double controlMin, double controlMax, bool isRising, double controlAmp)
         {
-            var firstSaccadeFrame = 0;
-            var secondSaccadeFrame = 1;
-            var thirdSaccadeFrame = 2;
+            var firstSaccadeFrameIndx = 0;
+            var secondSaccadeFrameIndx = 1;
+            var thirdSaccadeFrameIndx = 2;
+            int? lastProperMoveStartIndex = null; 
+            bool isStartFound = false;
 
             for (int saccNum = 0; saccNum < startCoords.Length; saccNum++)
             {
-                bool isLongMoveOneDirection = false;
+                if (thirdSaccadeFrameIndx < startCoords.Length)
+                {
+                    var isCordsDirection = false;
+                    var isCordsAmp = false;
+                    var isCordsLength = false;
 
-                if(isRising)
-                {
-                    isLongMoveOneDirection = startCoords[firstSaccadeFrame] < startCoords[secondSaccadeFrame]
-                    && startCoords[secondSaccadeFrame] < startCoords[thirdSaccadeFrame];
-                }
-                else
-                {
-                    isLongMoveOneDirection = startCoords[firstSaccadeFrame] > startCoords[secondSaccadeFrame]
-                    && startCoords[secondSaccadeFrame] > startCoords[thirdSaccadeFrame];
-                }
-
-                if (isLongMoveOneDirection)
-                {
-                    var firstSecondFrameLength = Math.Abs(startCoords[secondSaccadeFrame] - startCoords[firstSaccadeFrame]);
-                    var secondThirdFrameLength = Math.Abs(startCoords[thirdSaccadeFrame] - startCoords[secondSaccadeFrame]);
-                    if (firstSecondFrameLength < controlAmp && secondThirdFrameLength > firstSecondFrameLength)
+                    if (isRising)
                     {
-                        firstSaccadeFrame++;
+                        isCordsDirection = startCoords[firstSaccadeFrameIndx] < startCoords[secondSaccadeFrameIndx]
+                        && startCoords[secondSaccadeFrameIndx] < startCoords[thirdSaccadeFrameIndx];
+                        isCordsAmp = (startCoords[secondSaccadeFrameIndx] - startCoords[firstSaccadeFrameIndx]) > (controlAmp);
+                        isCordsLength = (startCoords[thirdSaccadeFrameIndx] - startCoords[firstSaccadeFrameIndx]) > 0.4;
+                    }
+                    else
+                    {
+                        isCordsDirection = startCoords[firstSaccadeFrameIndx] > startCoords[secondSaccadeFrameIndx]
+                        && startCoords[secondSaccadeFrameIndx] > startCoords[thirdSaccadeFrameIndx];
+                        isCordsAmp = (startCoords[firstSaccadeFrameIndx] - startCoords[secondSaccadeFrameIndx]) > (controlAmp);
+                        isCordsLength =  (startCoords[firstSaccadeFrameIndx] - startCoords[thirdSaccadeFrameIndx]) > 0.4;
                     }
 
-                    eyeStartIndex = eyeStartIndex + firstSaccadeFrame;
-                    startCoords = startCoords.Skip(firstSaccadeFrame).ToArray();
-                    break;
+                    if (isCordsDirection /*&& lastProperMoveStartIndex == null*/)
+                    {
+                        lastProperMoveStartIndex = firstSaccadeFrameIndx;
+                    }
+
+                    var isLongMoveOneDirection = isCordsDirection && isCordsAmp && isCordsLength;
+
+                    if (isLongMoveOneDirection)
+                    {
+                        isStartFound = true;
+                        var spotFirstFrameLength = Math.Abs(startCoords[firstSaccadeFrameIndx] - spotStartX);
+                        var firstSecondFrameLength = Math.Abs(startCoords[secondSaccadeFrameIndx] - startCoords[firstSaccadeFrameIndx]);
+                        var secondThirdFrameLength = Math.Abs(startCoords[thirdSaccadeFrameIndx] - startCoords[secondSaccadeFrameIndx]);
+
+                        
+
+                        //if (firstSecondFrameLength < controlAmp)
+                        //{
+                        //    //&& secondThirdFrameLength > firstSecondFrameLength
+                        //    //firstSaccadeFrame++;
+                        //}
+                        //else
+                        //{
+                        //    if (secondThirdFrameLength > firstSecondFrameLength)
+                        //    {
+                        //        //firstSaccadeFrame++;
+                        //    }
+                        //    else
+                        //    {
+                        //        var diffPercent = (controlAmp / firstSecondFrameLength) * 100;
+                        //        if (diffPercent < 50)
+                        //        {
+                        //            //firstSaccadeFrame++;
+                        //        }
+                        //    }
+                        //}
+
+                       
+
+                        if (isRising && controlMax > startCoords[0] )
+                        {
+                            //double diffPercent2 = (startCoords[0] / controlMax) * 100;
+                            //if (diffPercent2 < 50)
+                            //{
+                            //    firstSaccadeFrame++;
+                            //}
+                            firstSaccadeFrameIndx++;
+                        }
+
+                        eyeStartIndex = eyeStartIndex + firstSaccadeFrameIndx;
+                        startCoords = startCoords.Skip(firstSaccadeFrameIndx).ToArray();
+                        break;
+                    }
+                    else
+                    {
+                        firstSaccadeFrameIndx++;
+                        secondSaccadeFrameIndx++;
+                        thirdSaccadeFrameIndx++;
+                    }
                 }
-                else
-                {
-                    firstSaccadeFrame++;
-                    secondSaccadeFrame++;
-                    thirdSaccadeFrame++;
-                }
+            }
+
+            if (!isStartFound && lastProperMoveStartIndex != null)
+            {
+                eyeStartIndex = eyeStartIndex + lastProperMoveStartIndex.GetValueOrDefault();
+                startCoords = startCoords.Skip(lastProperMoveStartIndex.GetValueOrDefault()).ToArray();
             }
         }
 
-        private int FindIndex(double[] startCoords, int eyeStartIndex, double spotStartOscilationXPosition,
-            double spotEndOscilationXPosition, double fluctuationAmp, bool isRising)
-        {
-            var saccadeStartIndex = eyeStartIndex;
-           
-            double currentDisplacement = 0;
-            var checkCount = 0;
-            var checkCountMaxValue = 2;
-            double? previousValue = null;
-
-            if (isRising)
-            {
-                var cordIndexRise = 0;
-                foreach (var currCordRise in startCoords)
-                {
-                    if (currCordRise > spotStartOscilationXPosition)
-                    {
-                        if (previousValue != null)
-                        {
-                            if (currCordRise > previousValue)
-                            {
-                                if (checkCount < checkCountMaxValue)
-                                {
-                                    checkCount++;
-                                    currentDisplacement = currentDisplacement + Math.Abs(currCordRise - previousValue.GetValueOrDefault());
-                                    previousValue = currCordRise;
-                                }
-                                else
-                                {
-                                    saccadeStartIndex = eyeStartIndex + (cordIndexRise - checkCount);
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                checkCount = 0;
-                                currentDisplacement = 0;
-                                previousValue = currCordRise;
-                            }
-                        }
-                        else
-                        {
-                            checkCount++;
-                            previousValue = currCordRise;
-                        }
-                    }
-
-                    cordIndexRise = cordIndexRise++;
-                }
-            }
-            else
-            {
-                int cordIndexDown = 0;
-                foreach (var currCord in startCoords)
-                {
-                    if (currCord < spotStartOscilationXPosition)
-                    {
-                        if (previousValue != null)
-                        {
-                            if (currCord < previousValue)
-                            {
-                                //if (checkCount <= checkCountMaxValue)
-                                //{
-                                    //checkCount++;
-                                    currentDisplacement = currentDisplacement + Math.Abs(currCord - previousValue.GetValueOrDefault());
-                                    if(currentDisplacement > fluctuationAmp)
-                                    {
-                                        //cordIndexDown++;
-                                        saccadeStartIndex = eyeStartIndex + (cordIndexDown - 1);
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        previousValue = currCord;
-                                    }
-                                //}
-                                //else
-                                //{
-                                //    //cordIndexDown++;
-                                //    saccadeStartIndex = eyeStartIndex + (cordIndexDown - checkCount);
-                                //    break;
-                                //}
-                            }
-                            else
-                            {
-                                checkCount = 0;
-                                currentDisplacement = 0;
-                                previousValue = currCord;
-                            }
-                        }
-                        else
-                        {
-                            checkCount++;
-                            previousValue = currCord;
-                        }
-                    }
-                    cordIndexDown ++;
-                }
-
-            }
-
-            return saccadeStartIndex;
-        }
+       
     }
 
 }

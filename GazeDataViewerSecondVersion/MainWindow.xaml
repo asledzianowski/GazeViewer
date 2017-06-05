@@ -240,10 +240,10 @@
                             <ComboBox Grid.Column="2"  Grid.Row="0" Name="ComboFilterTypeButterworth" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Height="26"  Width="140" Loaded="ComboBox_Loaded"/>
 
                             <Label Grid.Column="4" Grid.Row="0" Content="Frequency:" HorizontalAlignment="Right"></Label>
-                            <TextBox Grid.Column="5" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="2" PreviewTextInput="DecimalValidationTextBox" 
+                            <TextBox Grid.Column="5" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="3" PreviewTextInput="DecimalValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBButterWorthFrequency"></TextBox>
                             <Label Grid.Column="6" Grid.Row="0" Content="Sample Rate:" HorizontalAlignment="Right"></Label>
-                            <TextBox Grid.Column="7" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="60" PreviewTextInput="NumberValidationTextBox" 
+                            <TextBox Grid.Column="7" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="40" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBButterWorthSampleRate"></TextBox>
                             <Label Grid.Column="6" Grid.Row="1" Content="Resonance:" HorizontalAlignment="Right"></Label>
                             <TextBox Grid.Column="7" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="1" PreviewTextInput="DecimalValidationTextBox" 
