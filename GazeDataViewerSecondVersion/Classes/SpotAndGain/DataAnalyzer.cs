@@ -11,7 +11,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
     public class DataAnalyzer
     {
 
-        public static SpotGainResults Analyze(SpotGazeFileData fileData, CalcConfig calcConfig, int recEnd, FiltersConfig filterConfig)
+        public static ResultData FindSpotEyePointsForSaccadeSearch(SpotGazeFileData fileData, CalcConfig calcConfig, int recEnd, FiltersConfig filterConfig)
         {
             var timeSpans = GetDeltaTimespansInt(fileData.Time);
             //wyznaczamy środek amplitudy 
@@ -88,8 +88,8 @@ namespace GazeDataViewer.Classes.SpotAndGain
             // tylko amplitudy oka o indeksie równym najniżeszmu indeksowi zredukowanych punktów amplitudy oka   
             var earliestEyeOverAmpForSpotOverAmpIndexes = NarrowList(rightEyeOverMeanSpotAmplitudeIndexes, lowestEyeOverAmpIndxesForSpotIndexes);
            
-            var results = new SpotGainResults();
-            results.PlotData = new PlotData
+            var results = new ResultData();
+            results = new ResultData
             {
                 EarliestEyeOverSpotIndex = earliestEyeOverAmpForSpotOverAmpIndexes,
                 SpotOverMeanIndex = spotAmplitudeOverMeanIndexes,

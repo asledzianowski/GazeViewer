@@ -9,44 +9,44 @@ namespace GazeDataViewer.Classes.Saccade
 {
     public static class SaccadeDataHelper
     {
-        public static SaccadePosition GetSaccadePositionItem(int id, int saccadeStartIndex, int saccadeEndIndex, int spotOverMeanStartIndex, int spotOverMeanEndIndex, SpotGainResults results)
+        public static SaccadePosition GetSaccadePositionItem(int id, int saccadeStartIndex, int saccadeEndIndex, int spotOverMeanStartIndex, int spotOverMeanEndIndex, ResultData results)
         {
             return new SaccadePosition
             {
                 Id = id,
                 SaccadeStartIndex = saccadeStartIndex,
-                SaccadeStartTime = results.PlotData.TimeDeltas[saccadeStartIndex],
-                SaccadeStartCoord = results.PlotData.EyeCoords[saccadeStartIndex],
+                SaccadeStartTime = results.TimeDeltas[saccadeStartIndex],
+                SaccadeStartCoord = results.EyeCoords[saccadeStartIndex],
 
                 SaccadeEndIndex = saccadeEndIndex,
-                SaccadeEndTime = results.PlotData.TimeDeltas[saccadeEndIndex],
-                SaccadeEndCoord = results.PlotData.EyeCoords[saccadeEndIndex],
+                SaccadeEndTime = results.TimeDeltas[saccadeEndIndex],
+                SaccadeEndCoord = results.EyeCoords[saccadeEndIndex],
 
                 SpotStartIndex = spotOverMeanStartIndex,
-                SpotStartTime = results.PlotData.TimeDeltas[spotOverMeanStartIndex],
-                SpotStartCoord = results.PlotData.SpotCoords[spotOverMeanStartIndex],
+                SpotStartTime = results.TimeDeltas[spotOverMeanStartIndex],
+                SpotStartCoord = results.SpotCoords[spotOverMeanStartIndex],
 
                 SpotEndIndex = spotOverMeanEndIndex,
-                SpotEndTime = results.PlotData.TimeDeltas[spotOverMeanEndIndex],
-                SpotEndCoord = results.PlotData.SpotCoords[spotOverMeanEndIndex],
+                SpotEndTime = results.TimeDeltas[spotOverMeanEndIndex],
+                SpotEndCoord = results.SpotCoords[spotOverMeanEndIndex],
 
             };
         }
 
         public static SaccadePosition GetSaccadePositionItem(int id, int saccadeStartIndex, int saccadeEndIndex, int spotOverMeanStartIndex,
             double spotStartTime, double spotStartCoord, int spotOverMeanEndIndex,
-            double spotEndTime, double spotEndCoord, SpotGainResults results)
+            double spotEndTime, double spotEndCoord, ResultData results)
         {
             return new SaccadePosition
             {
                 Id = id,
                 SaccadeStartIndex = saccadeStartIndex,
-                SaccadeStartTime = results.PlotData.TimeDeltas[saccadeStartIndex],
-                SaccadeStartCoord = results.PlotData.EyeCoords[saccadeStartIndex],
+                SaccadeStartTime = results.TimeDeltas[saccadeStartIndex],
+                SaccadeStartCoord = results.EyeCoords[saccadeStartIndex],
 
                 SaccadeEndIndex = saccadeEndIndex,
-                SaccadeEndTime = results.PlotData.TimeDeltas[saccadeEndIndex],
-                SaccadeEndCoord = results.PlotData.EyeCoords[saccadeEndIndex],
+                SaccadeEndTime = results.TimeDeltas[saccadeEndIndex],
+                SaccadeEndCoord = results.EyeCoords[saccadeEndIndex],
 
                 SpotStartIndex = spotOverMeanStartIndex,
                 SpotStartTime = spotStartTime,
@@ -59,7 +59,8 @@ namespace GazeDataViewer.Classes.Saccade
             };
         }
 
-        public static SaccadePosition FindSaccade(int id, int spotStartIndex, int spotEndIndex, int latency, int minDuration, PlotData results)
+
+        public static SaccadePosition FindSaccade(int id, int spotStartIndex, int spotEndIndex, int latency, int minDuration, ResultData results)
         {
 
             var distanceFromScreen = 30;

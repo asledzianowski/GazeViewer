@@ -25,6 +25,7 @@ using static GazeDataViewer.Classes.Denoise.FilterButterworth;
 using GazeDataViewer.Classes.Denoise;
 using System.IO;
 using GazeDataViewer.Classes.Serialization;
+using GazeDataViewer.Classes.Spot;
 
 namespace GazeDataViewer
 {
@@ -33,11 +34,12 @@ namespace GazeDataViewer
     /// </summary>
     public partial class MainWindow : Window
     {
-        SpotGainResults CurrentResults { get; set; }
+        ResultData CurrentResults { get; set; }
 
         SpotGazeFileData FileData { get; set; }
 
         List<SaccadePosition> SaccadePositions { get; set; }
+        List<SpotMove> SpotMovePositions { get; set; }
 
         string SpotFilePath { get; set; }
 
@@ -135,9 +137,14 @@ namespace GazeDataViewer
                     TBSavGoayPointsNum.Text = numCoef.ToString();
                 }
 
+                var pursuitMoveRecords = DataHelper.CutData(fileData, 0, 6000);
+                var saccadeAntisaccadeRecords = DataHelper.CutData(fileData, 6001, fileData.Time.Length);
+
                 var filterConfig = GetCurrentFilterConfig();
-                CurrentResults = DataAnalyzer.Analyze(fileData, calcConfig, recEnd, filterConfig);
-                ClearLines();
+                //do metody sakady
+                CurrentResults = DataAnalyzer.FindSpotEyePointsForSaccadeSearch(fileData, calcConfig, recEnd, filterConfig);
+
+                GraphClearElements();
                 PlotData(CurrentResults, calcConfig);
             }
             else
@@ -150,26 +157,34 @@ namespace GazeDataViewer
 
 
 
-        private void PlotData(SpotGainResults results, CalcConfig calcCnfig)
+        private void PlotData(ResultData results, CalcConfig calcCnfig)
         {
+            // do ogólnej metody renderującej graf
+            ApplyEyeSpotSinusoids(results.TimeDeltas, results.EyeCoords, results.SpotCoords);
 
-            ApplyEyeSpotSinusoids(results.PlotData.TimeDeltas, results.PlotData.EyeCoords, results.PlotData.SpotCoords);
             var saccadeFinder = new SaccadeFinder(40, 60, 20, 50);
             SaccadePositions = new List<SaccadePosition>();
-            for (int i = 0; i < results.PlotData.SpotOverMeanIndex.Count; i++)
+            SpotMovePositions = new List<SpotMove>();
+
+            for (int i = 0; i < results.SpotOverMeanIndex.Count; i++)
             {
-               // var currentEyeOverSpotIndex = results.PlotData.EarliestEyeOverSpotIndex[i];
-                var spotOverMeanIndex = results.PlotData.SpotOverMeanIndex[i];
-                //var currentEyeShiftIndex = SaccadeDataHelper.CountEyeShiftIndex(currentEyeOverSpotIndex, results.PlotData.ShiftPeriod);
-                var currentSpotShiftIndex = SaccadeDataHelper.CountSpotShiftIndex(spotOverMeanIndex, results.PlotData.ShiftPeriod);
+                var spotOverMeanIndex = results.SpotOverMeanIndex[i];
+                var currentSpotShiftIndex = SaccadeDataHelper.CountSpotShiftIndex(spotOverMeanIndex, results.ShiftPeriod);
 
-                if (currentSpotShiftIndex < results.PlotData.TimeDeltas.Count())
+                if (currentSpotShiftIndex < results.TimeDeltas.Count())
                 {
-                    //var saccItem = SaccadeDataHelper.GetSaccadePositionItem(i, currentEyeOverSpotIndex, currentEyeShiftIndex,
-                    //    spotOverMeanIndex, currentSpotShiftIndex, results);
+                    SpotMovePositions.Add(new SpotMove
+                    {
+                        SpotStartIndex = spotOverMeanIndex,
+                        SpotStartTime = results.TimeDeltas[spotOverMeanIndex],
+                        SpotStartCoord = results.SpotCoords[spotOverMeanIndex],
 
-                    //var saccItem = SaccadeDataHelper.FindSaccade(i, spotOverMeanIndex, currentSpotShiftIndex, calcCnfig.MinLatency, calcCnfig.MinDuration, results.PlotData);
-                    var saccItem = saccadeFinder.FindSaccade(i, spotOverMeanIndex, currentSpotShiftIndex, calcCnfig.MinLatency, calcCnfig.MinDuration, results.PlotData);
+                        SpotEndIndex = currentSpotShiftIndex,
+                        SpotEndTime = results.TimeDeltas[currentSpotShiftIndex],
+                        SpotEndCoord = results.SpotCoords[currentSpotShiftIndex],
+                    });
+
+                    var saccItem = saccadeFinder.FindSaccade(i, spotOverMeanIndex, currentSpotShiftIndex, calcCnfig.MinLatency, calcCnfig.MinDuration, results);
 
                     if (saccItem != null)
                     {
@@ -203,7 +218,7 @@ namespace GazeDataViewer
             //marker.Marker = markPen;
             //amplitudePlotter.Children.Add(marker);
 
-            ApplySpotPointMarkers(SaccadePositions);
+            ApplySpotPointMarkers(SpotMovePositions);
             ApplySaccadeMarkersAndControls(SaccadePositions);
 
             if (CBFixView.IsChecked == false)
@@ -212,16 +227,16 @@ namespace GazeDataViewer
             }
         }
 
-        private void FitGraphView(SpotGainResults results)
+        private void FitGraphView(ResultData results)
         {
             //fit to view with margins
-            var yMargin = ((results.PlotData.EyeCoords.Max() - results.PlotData.EyeCoords.Min()) / 10);
-            var xMargin = ((results.PlotData.TimeDeltas.Max() - results.PlotData.TimeDeltas.Min()) / 20);
+            var yMargin = ((results.EyeCoords.Max() - results.EyeCoords.Min()) / 10);
+            var xMargin = ((results.TimeDeltas.Max() - results.TimeDeltas.Min()) / 20);
 
-            var xMin = results.PlotData.TimeDeltas.Min() - xMargin;
-            var xMax = results.PlotData.TimeDeltas.Max() + xMargin;
-            var yMin = results.PlotData.EyeCoords.Min() - yMargin;
-            var yMax = results.PlotData.EyeCoords.Max() + yMargin;
+            var xMin = results.TimeDeltas.Min() - xMargin;
+            var xMax = results.TimeDeltas.Max() + xMargin;
+            var yMin = results.EyeCoords.Min() - yMargin;
+            var yMax = results.EyeCoords.Max() + yMargin;
 
             amplitudePlotter.FitToView();
             amplitudePlotter.Viewport.Visible = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
@@ -255,13 +270,13 @@ namespace GazeDataViewer
             amplitudePlotter.Children.Add(line);
         }
 
-        private void ApplySpotPointMarkers(List<SaccadePosition> saccades)
+        private void ApplySpotPointMarkers(List<SpotMove> saccades)
         {
-            var spotStartDataSource = new EnumerableDataSource<SaccadePosition>(saccades);
+            var spotStartDataSource = new EnumerableDataSource<SpotMove>(saccades);
             spotStartDataSource.SetXMapping(x => x.SpotStartTime);
             spotStartDataSource.SetYMapping(x => x.SpotStartCoord);
 
-            var spotEndDataSource = new EnumerableDataSource<SaccadePosition>(saccades);
+            var spotEndDataSource = new EnumerableDataSource<SpotMove>(saccades);
             spotEndDataSource.SetXMapping(x => x.SpotEndTime);
             spotEndDataSource.SetYMapping(x => x.SpotEndCoord);
 
@@ -551,27 +566,27 @@ namespace GazeDataViewer
                 sb.Append(Environment.NewLine);
                 sb.Append($"Spot Start Index: {result.SpotStartIndex}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Spot Start X: {CurrentResults.PlotData.SpotCoords[result.SpotStartIndex]}");
+                sb.Append($"Spot Start X: {CurrentResults.SpotCoords[result.SpotStartIndex]}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Spot Start Time: {CurrentResults.PlotData.TimeStamps[result.SpotStartIndex]}");
+                sb.Append($"Spot Start Time: {CurrentResults.TimeStamps[result.SpotStartIndex]}");
                 sb.Append(Environment.NewLine);
                 sb.Append($"Spot End Index: {result.SpotEndIndex}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Spot End X: {CurrentResults.PlotData.SpotCoords[result.SpotEndIndex]}");
+                sb.Append($"Spot End X: {CurrentResults.SpotCoords[result.SpotEndIndex]}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Spot End Time: {CurrentResults.PlotData.TimeStamps[result.SpotEndIndex]}");
+                sb.Append($"Spot End Time: {CurrentResults.TimeStamps[result.SpotEndIndex]}");
                 sb.Append(Environment.NewLine);
                 sb.Append($"Eye Start Index: {result.EyeStartIndex}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Eye Start X: {CurrentResults.PlotData.EyeCoords[result.EyeStartIndex]}");
+                sb.Append($"Eye Start X: {CurrentResults.EyeCoords[result.EyeStartIndex]}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Eye Start Time: {CurrentResults.PlotData.TimeStamps[result.EyeStartIndex]}");
+                sb.Append($"Eye Start Time: {CurrentResults.TimeStamps[result.EyeStartIndex]}");
                 sb.Append(Environment.NewLine);
                 sb.Append($"Eye End Index: {result.EyeEndIndex}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Eye End X: {CurrentResults.PlotData.EyeCoords[result.EyeEndIndex]}");
+                sb.Append($"Eye End X: {CurrentResults.EyeCoords[result.EyeEndIndex]}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Eye End Time: {CurrentResults.PlotData.TimeStamps[result.EyeEndIndex]}");
+                sb.Append($"Eye End Time: {CurrentResults.TimeStamps[result.EyeEndIndex]}");
                 sb.Append(Environment.NewLine);
                 sb.Append($"Latency Frame Count: {result.LatencyFrameCount}");
                 sb.Append(Environment.NewLine);
@@ -597,7 +612,7 @@ namespace GazeDataViewer
                 sb.Append(Environment.NewLine);
                 for (int i = result.EyeStartIndex; i < result.EyeStartIndex + result.DurationFrameCount; i++)
                 {
-                    sb.Append($"Index:{i} - Value: {CurrentResults.PlotData.EyeCoords[i]}");
+                    sb.Append($"Index:{i} - Value: {CurrentResults.EyeCoords[i]}");
                     sb.Append(Environment.NewLine);
                 }
 
@@ -606,7 +621,7 @@ namespace GazeDataViewer
                 sb.Append(Environment.NewLine);
                 for (int i = result.EyeStartIndex; i < result.EyeStartIndex + result.DurationFrameCount; i++)
                 {
-                    sb.Append($"Index:{i} - Time: {CurrentResults.PlotData.TimeDeltas[i]}");
+                    sb.Append($"Index:{i} - Time: {CurrentResults.TimeDeltas[i]}");
                     sb.Append(Environment.NewLine);
                 }
 
@@ -621,7 +636,7 @@ namespace GazeDataViewer
 
 
 
-        public void ClearLines()
+        public void GraphClearElements()
         {
 
             var lgc = new Collection<IPlotterElement>();
@@ -987,8 +1002,8 @@ namespace GazeDataViewer
 
             var distanceFromScreen = int.Parse(TBDistanceFromScreen.Text);
             var frequency = int.Parse(TBFrequency.Text);
-            var saccCalculator = new SaccadeParamsCalcuator(SaccadePositions, CurrentResults.PlotData.EyeCoords,
-                CurrentResults.PlotData.SpotCoords, distanceFromScreen, frequency);
+            var saccCalculator = new SaccadeParamsCalcuator(SaccadePositions, CurrentResults.EyeCoords,
+                CurrentResults.SpotCoords, distanceFromScreen, frequency);
             var results = saccCalculator.Calculate();
             LogData(results);
         }
@@ -1009,20 +1024,20 @@ namespace GazeDataViewer
             {
                 Id = currentId,
                 SaccadeStartIndex = eyeStartIndex,
-                SaccadeStartCoord = CurrentResults.PlotData.EyeCoords[eyeStartIndex],
-                SaccadeStartTime = CurrentResults.PlotData.TimeDeltas[eyeStartIndex],
+                SaccadeStartCoord = CurrentResults.EyeCoords[eyeStartIndex],
+                SaccadeStartTime = CurrentResults.TimeDeltas[eyeStartIndex],
 
                 SaccadeEndIndex = eyeMoveEndIndex,
-                SaccadeEndCoord = CurrentResults.PlotData.EyeCoords[eyeMoveEndIndex],
-                SaccadeEndTime = CurrentResults.PlotData.TimeDeltas[eyeMoveEndIndex],
+                SaccadeEndCoord = CurrentResults.EyeCoords[eyeMoveEndIndex],
+                SaccadeEndTime = CurrentResults.TimeDeltas[eyeMoveEndIndex],
 
                 SpotStartIndex = spotStartIndex,
-                SpotStartCoord = CurrentResults.PlotData.SpotCoords[spotStartIndex],
-                SpotStartTime = CurrentResults.PlotData.TimeDeltas[spotStartIndex],
+                SpotStartCoord = CurrentResults.SpotCoords[spotStartIndex],
+                SpotStartTime = CurrentResults.TimeDeltas[spotStartIndex],
 
                 SpotEndIndex = spotShiftIndex,
-                SpotEndCoord = CurrentResults.PlotData.SpotCoords[spotShiftIndex],
-                SpotEndTime = CurrentResults.PlotData.TimeDeltas[spotShiftIndex]
+                SpotEndCoord = CurrentResults.SpotCoords[spotShiftIndex],
+                SpotEndTime = CurrentResults.TimeDeltas[spotShiftIndex]
             });
 
             currentId++;
@@ -1121,7 +1136,7 @@ namespace GazeDataViewer
                 var spotGazeTrackState = SerializationHelper.DeserializeFromFile(dialog.FileName);
                 if(spotGazeTrackState != null)
                 {
-                    this.ClearLines();
+                    this.GraphClearElements();
                     this.SetCalcConfigGUI(spotGazeTrackState.CalcConfig);
                     this.SetFilterConfigGUI(spotGazeTrackState.FiltersConfig);
                     this.SaccadePositions = spotGazeTrackState.SaccadePositions;
@@ -1135,7 +1150,7 @@ namespace GazeDataViewer
 
 
                     this.ApplySaccadeControls(this.SaccadePositions);
-                    this.ApplySpotPointMarkers(this.SaccadePositions);
+                    this.ApplySpotPointMarkers(this.SpotMovePositions);
                     this.ApplyEyeSpotSinusoids(cutTimeDeltas, cutEyeCoords, cutSpotCoords);
                     this.ReApplySaccadePoints();
                     this.UnlockControll(true);

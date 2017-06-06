@@ -14,7 +14,7 @@ namespace GazeDataViewer.Classes.Serialization
     {
         public List<SaccadePosition> SaccadePositions { get; set; }
         public SpotGazeFileData FileData { get; set; }
-        public SpotGainResults CurrentResults { get; set; }
+        public ResultData CurrentResults { get; set; }
         public CalcConfig CalcConfig { get; set; }
         public FiltersConfig FiltersConfig { get; set; }
     }

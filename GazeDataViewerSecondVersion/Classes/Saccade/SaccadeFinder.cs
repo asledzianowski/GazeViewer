@@ -22,7 +22,7 @@ namespace GazeDataViewer.Classes.Saccade
             this.saccadeFindWindowLength = saccadeFindWindowLength;
         }
 
-        public SaccadePosition FindSaccade(int id, int spotStartIndex, int spotEndIndex, int latency, int minDuration, PlotData results)
+        public SaccadePosition FindSaccade(int id, int spotStartIndex, int spotEndIndex, int latency, int minDuration, ResultData results)
         {
             var spotStartOscilationXPosition = results.SpotCoords[spotStartIndex];
             var spotEndOscilationXPosition = results.SpotCoords[spotStartIndex + 1];
@@ -58,6 +58,10 @@ namespace GazeDataViewer.Classes.Saccade
             var saccadeEndIndex = endIndex;
 
             if (saccadeStartIndex > results.EyeCoords.Length)
+            {
+                return null;
+            }
+            else if (isStartFound == false || isEndFound == false)
             {
                 return null;
             }

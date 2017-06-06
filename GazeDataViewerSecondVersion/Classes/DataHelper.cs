@@ -175,7 +175,33 @@ namespace GazeDataViewer.Classes
             return outputData;
         }
 
-       
+
+        public static SpotGazeFileData CutData(SpotGazeFileData resultData, int skipCount, int takeCount)
+        {
+            return new SpotGazeFileData
+            {
+                Eye = resultData.Eye.Skip(skipCount).Take(takeCount).ToArray(),
+                Spot = resultData.Spot.Skip(skipCount).Take(takeCount).ToArray(),
+                Time = resultData.Time.Skip(skipCount).Take(takeCount).ToArray()
+            };
+        }
+
+        public static ResultData CutData(ResultData resultData, int skipCount, int takeCount)
+        {
+            return new ResultData
+            {
+                EarliestEyeOverSpotIndex = resultData.EarliestEyeOverSpotIndex.Skip(skipCount).Take(takeCount).ToList(),
+                SpotOverMeanIndex = resultData.SpotOverMeanIndex.Skip(skipCount).Take(takeCount).ToList(),
+                EyeCoords = resultData.EyeCoords.Skip(skipCount).Take(takeCount).ToArray(),
+                SpotCoords = resultData.SpotCoords.Skip(skipCount).Take(takeCount).ToArray(),
+                TimeDeltas = resultData.TimeDeltas.Skip(skipCount).Take(takeCount).ToArray(),
+                TimeStamps = resultData.TimeStamps.Skip(skipCount).Take(takeCount).ToArray(),
+                MeanSpotAmplitude = resultData.MeanSpotAmplitude,
+                ShiftPeriod = resultData.ShiftPeriod
+            };
+        }
+
+
 
     }
 }

@@ -88,6 +88,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Classes\AntiSaccade\AntiSaccadeFinder.cs" />
     <Compile Include="Classes\CalculationHelper.cs" />
     <Compile Include="Classes\DataHelper.cs" />
     <Compile Include="Classes\Denoise\FilterButterworth.cs" />
@@ -108,7 +109,8 @@
     <Compile Include="Classes\SpotAndGain\DataAnalyzer.cs" />
     <Compile Include="Classes\Saccade\SaccadePosition.cs" />
     <Compile Include="Classes\SpotAndGain\SpotGazeFileData.cs" />
-    <Compile Include="Classes\SpotAndGain\SpotGainResults.cs" />
+    <Compile Include="Classes\SpotAndGain\ResultData.cs" />
+    <Compile Include="Classes\Spot\SpotMove.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
