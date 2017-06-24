@@ -1,5 +1,6 @@
 ﻿using GazeDataViewer.Classes.Denoise;
 using GazeDataViewer.Classes.Saccade;
+using GazeDataViewer.Classes.Spot;
 using GazeDataViewer.Classes.SpotAndGain;
 using System;
 using System.Collections.Generic;
@@ -12,7 +13,12 @@ namespace GazeDataViewer.Classes.Serialization
     [Serializable]
     public class SpotEyeTrackState
     {
-        public List<SaccadePosition> SaccadePositions { get; set; }
+        public List<EyeMove> SaccadePositions { get; set; }
+        public List<EyeMove> AntiSaccadePositions { get; set; }
+        public List<SpotMove> SpotPositions { get; set; }
+        public List<SaccadeCalculation> SaccadeCalculations { get; set; }
+        public List<SaccadeCalculation> AntiSaccadeCalculations { get; set; }
+
         public SpotGazeFileData FileData { get; set; }
         public ResultData CurrentResults { get; set; }
         public CalcConfig CalcConfig { get; set; }

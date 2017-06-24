@@ -11,6 +11,8 @@ namespace GazeDataViewer.Classes.SpotAndGain
     {
         public int[] Time { get; set; }
 
+        public int[] TimeDeltas { get; set; }
+
         public double[] Eye { get; set; }
 
         public double[] Spot { get; set; }

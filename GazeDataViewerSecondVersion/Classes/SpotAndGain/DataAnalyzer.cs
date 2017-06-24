@@ -1,5 +1,7 @@
 ﻿using Altaxo.Calc.Regression;
 using GazeDataViewer.Classes.Denoise;
+using GazeDataViewer.Classes.Saccade;
+using GazeDataViewer.Classes.Spot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,9 +13,9 @@ namespace GazeDataViewer.Classes.SpotAndGain
     public class DataAnalyzer
     {
 
-        public static ResultData FindSpotEyePointsForSaccadeSearch(SpotGazeFileData fileData, CalcConfig calcConfig, int recEnd, FiltersConfig filterConfig)
+        public static ResultData FindSpotEyePointsForSaccadeAntiSaccadeSearch(SpotGazeFileData fileData, CalcConfig calcConfig)
         {
-            var timeSpans = GetDeltaTimespansInt(fileData.Time);
+            var spotMovePositions = new List<SpotMove>();
             //wyznaczamy środek amplitudy 
             var mncal = fileData.Spot.Min();
             var mxcal = fileData.Spot.Max();
@@ -29,28 +31,15 @@ namespace GazeDataViewer.Classes.SpotAndGain
             var spotAmpProp = calcConfig.SpotAmpProp;
 
             // dane od recStart
-            var recLenght = (recEnd - recStart);
-            var timeDeltas = timeSpans.Skip(recStart).Take(recLenght).ToArray();
-            var eyeCoords = fileData.Eye.Skip(recStart).Take(recLenght).ToArray();
-            var spotCoords = fileData.Spot.Skip(recStart).Take(recLenght).ToArray();
+            //var recLenght = (recEnd - recStart);
+            //var timeDeltas = fileData.TimeDeltas.Skip(recStart).Take(recLenght).ToArray();
+            //var eyeCoords = fileData.Eye.Skip(recStart).Take(recLenght).ToArray();
+            //var spotCoords = fileData.Spot.Skip(recStart).Take(recLenght).ToArray();
 
-            if(filterConfig.FilterByButterworth)
-            {
-                var filterButterworth = new FilterButterworth(filterConfig.ButterworthFrequency, filterConfig.ButterworthSampleRate,
-                    filterConfig.ButterworthPassType, filterConfig.ButterworthResonance);
-                eyeCoords = filterButterworth.FilterArray(eyeCoords);
-            }
-
-            if (filterConfig.FilterBySavitzkyGolay)
-            {
-                //left
-                double[] smoothedResult = new double[eyeCoords.Length];
-                var filterSavitzkyGolay = new SavitzkyGolay(filterConfig.SavitzkyGolayNumberOfPoints, filterConfig.SavitzkyGolayDerivativeOrder, 
-                    filterConfig.SavitzkyGolayPolynominalOrder);
-                filterSavitzkyGolay.Apply(eyeCoords, smoothedResult);
-                eyeCoords = smoothedResult;
-            }
-        
+            var timeDeltas = fileData.TimeDeltas;
+            var eyeCoords = fileData.Eye;
+            var spotCoords = fileData.Spot;
+            var timeStamps = fileData.Time;
 
             // tworzymy kopie danych z przesniętym reye, leye na shiftPeriod do tyłu (przed poczatkiem), 
             //spot do przodu początek na (+ shifPeroid) ? 
@@ -68,20 +57,39 @@ namespace GazeDataViewer.Classes.SpotAndGain
             // dla każdego rekordu spot powyżej amplitudy
             for (int i = 0; i < spotAmplitudeOverMeanIndexes.Count; i++)
             {
+
                 // dla każdego rekordu spot powyżej amplitudy, obliczamy różnicę dla rekordów amplitudy oczu
                 // bieżemy tylko indeksy wartości z różnicą więszą niż 5
-                var currSpotAmplitudeOverMeanIndex = spotAmplitudeOverMeanIndexes[i];
-                var reducedREyeOverAmpIndexesForCurrSpot = GetReducePointIndexes(rightEyeOverMeanSpotAmplitudeIndexes, currSpotAmplitudeOverMeanIndex, calcConfig.MinLatency);
-               
-                // dla każdego indeksu zredukowanego punktu
-                if (reducedREyeOverAmpIndexesForCurrSpot.Count > 0)
+                var currSpotOverMeanIndex = spotAmplitudeOverMeanIndexes[i];
+                var currentSpotShiftIndex = SaccadeDataHelper.CountSpotShiftIndex(currSpotOverMeanIndex, eyeShiftPeriod);
+
+                if (currentSpotShiftIndex < timeDeltas.Count())
                 {
+                    spotMovePositions.Add(new SpotMove
+                    {
+                        SpotStartIndex = currSpotOverMeanIndex,
+                        SpotStartTimeDelta = timeDeltas[currSpotOverMeanIndex],
+                        SpotStartTimeStamp = timeStamps[currSpotOverMeanIndex],
+                        SpotStartCoord = spotCoords[currSpotOverMeanIndex],
 
-                    var lowestREyeIndexForCurrentSpot = reducedREyeOverAmpIndexesForCurrSpot.Min();
-                    //do 'dre' dodajemy wartość najmniejszego indeksu z list zredukowanych punktów (dla aktualnego punktu spot)
-                    lowestEyeOverAmpIndxesForSpotIndexes.Add(lowestREyeIndexForCurrentSpot);
-
+                        SpotEndIndex = currentSpotShiftIndex,
+                        SpotEndTimeDelta = timeDeltas[currentSpotShiftIndex],
+                        SpotEndTimeStamp = timeStamps[currentSpotShiftIndex],
+                        SpotEndCoord = spotCoords[currentSpotShiftIndex],
+                    });
                 }
+
+                //var reducedREyeOverAmpIndexesForCurrSpot = GetReducePointIndexes(rightEyeOverMeanSpotAmplitudeIndexes, currSpotOverMeanIndex, calcConfig.MinLatency);
+               
+                //// dla każdego indeksu zredukowanego punktu
+                //if (reducedREyeOverAmpIndexesForCurrSpot.Count > 0)
+                //{
+
+                //    var lowestREyeIndexForCurrentSpot = reducedREyeOverAmpIndexesForCurrSpot.Min();
+                //    //do 'dre' dodajemy wartość najmniejszego indeksu z list zredukowanych punktów (dla aktualnego punktu spot)
+                //    lowestEyeOverAmpIndxesForSpotIndexes.Add(lowestREyeIndexForCurrentSpot);
+
+                //}
             }
 
             // zawezamy znalezione zmiany amplitudy dla oczu tak aby odpowiadaly w miare pewnym zmianom amplitudy markera
@@ -93,12 +101,12 @@ namespace GazeDataViewer.Classes.SpotAndGain
             {
                 EarliestEyeOverSpotIndex = earliestEyeOverAmpForSpotOverAmpIndexes,
                 SpotOverMeanIndex = spotAmplitudeOverMeanIndexes,
+                SpotMoves = spotMovePositions,
                 EyeCoords = eyeCoords,
                 ShiftPeriod = eyeShiftPeriod,
                 SpotCoords = spotCoords,
                 TimeDeltas = timeDeltas,
-                TimeStamps = fileData.Time
-
+                TimeStamps = fileData.Time,
             };
 
             return results;
@@ -270,18 +278,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
             return stime.ToArray();
         }
 
-        public static int[] GetDeltaTimespansInt(int[] timestamps)
-        {
-            var startTime = timestamps[0];
-            var stime = new List<int>();
-
-            for (int i = 0; i < timestamps.Length; i++)
-            {
-                var timeSpan = timestamps[i] - startTime;
-                stime.Add(timeSpan);
-            }
-            return stime.ToArray();
-        }
+       
 
         /// <summary>
         /// Jeżeli rollBy > 0 to back, tail na początek (było 1,2...9,10 - jest 9,10,1,2,3...)
