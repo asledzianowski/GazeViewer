@@ -7,9 +7,10 @@ using System.Threading.Tasks;
 
 namespace GazeDataViewer.Classes.Saccade
 {
-    public class SaccadeCalculation
+    public class EyeMoveCalculation
     {
         public int Id { get; set; }
+        public bool IsFirstMove { get; set; }
         public EyeMoveTypes EyeMoveType { get; set; }
         public int SpotStartIndex { get; set; }
         public int SpotEndIndex { get; set; }
@@ -25,7 +26,8 @@ namespace GazeDataViewer.Classes.Saccade
         public double MaxVelocity { get; set; }
         public double AvgVelocity { get; set; }
         public double Gain { get; set; }
+        public double ApproxGain { get; set; }
 
-        
+
     }
 }

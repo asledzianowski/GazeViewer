@@ -7,5 +7,5 @@ using System.Threading.Tasks;
 namespace GazeDataViewer.Classes.Enums
 {
 
-    public enum EyeMoveTypes { Saccade, AntiSaccade }    
+    public enum EyeMoveTypes { Saccade, AntiSaccade, Pursuit }    
 }

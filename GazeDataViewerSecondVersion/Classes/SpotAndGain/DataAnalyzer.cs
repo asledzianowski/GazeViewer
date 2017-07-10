@@ -1,5 +1,6 @@
 ﻿using Altaxo.Calc.Regression;
 using GazeDataViewer.Classes.Denoise;
+using GazeDataViewer.Classes.EyeMoveSearch;
 using GazeDataViewer.Classes.Saccade;
 using GazeDataViewer.Classes.Spot;
 using System;
@@ -12,6 +13,65 @@ namespace GazeDataViewer.Classes.SpotAndGain
 {
     public class DataAnalyzer
     {
+
+        public static Dictionary<int, double> GetApproxEyeSinusoidForPursuitSearch(SpotGazeFileData fileData, CalcConfig calcConfig)
+        {
+            //var spotAvg = fileData.Spot.Average();
+            //var spotAtAvg = new List<SpotMove>();
+            //var spotTrack = fileData.Spot.ToList();
+            /////var spotMoveStartIndex = spotTrack.IndexOf(spotTrack.FirstOrDefault(x => x != 0));
+
+            var data = fileData; // InputDataHelper.CutData(fileData, spotMoveStartIndex, fileData.Spot.Length - spotMoveStartIndex);
+            var latency = calcConfig.PursuitMoveFinderConfig.MinLatency;
+            var approximations = new Dictionary<int, double>();
+            for(int i = latency; i < data.Eye.Count(); i++)
+            {
+                double? appVal = null;
+                if (data.Eye[i - latency] != 0)
+                {
+                    var originalVal = data.Eye[i - latency];
+                    appVal =  PursuitMoveHelper.GetSinusoideApproximation(originalVal);
+                    appVal = appVal * calcConfig.PursuitMoveFinderConfig.Multiplication;
+                }
+
+                
+                if (appVal != null)
+                {
+                    approximations.Add(data.TimeDeltas[i], appVal.GetValueOrDefault());
+                }
+                else
+                { 
+                    //var randomVal = Convert.ToDouble(new Random().Next(-1, 2)); //min + new Random().NextDouble() * (max - min);
+                    //if(randomVal != 0)
+                    //{
+                    //    randomVal = randomVal / 10;
+                    //}
+                    approximations.Add(data.TimeDeltas[i], 0);
+                }
+                
+            }
+
+           
+
+            return approximations;
+        }
+
+        public static EyeMoveCalculation CountPursoitParameters(SpotGazeFileData data, Dictionary<int, double> approximations, CalcConfig calcConfig)
+        {
+            var spotOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(data.Spot.ToArray()).Sum();
+            var eyeOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(data.Eye.ToArray()).Sum();
+            var eyeOnScreenDistanceApproximations = SaccadeDataHelper.CountOnScreenDistance(approximations.Values.ToArray()).Sum();
+
+            var spotEyeGain = eyeOnScreenDistance / spotOnScreenDistance;
+            var eyeToApproxEyeGain = eyeOnScreenDistance / eyeOnScreenDistanceApproximations;
+
+            return new EyeMoveCalculation
+            {
+                Gain = spotEyeGain,
+                ApproxGain = eyeToApproxEyeGain,
+                Latency = calcConfig.PursuitMoveFinderConfig.MinLatency
+            };
+        }
 
         public static ResultData FindSpotEyePointsForSaccadeAntiSaccadeSearch(SpotGazeFileData fileData, CalcConfig calcConfig)
         {
@@ -79,17 +139,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
                     });
                 }
 
-                //var reducedREyeOverAmpIndexesForCurrSpot = GetReducePointIndexes(rightEyeOverMeanSpotAmplitudeIndexes, currSpotOverMeanIndex, calcConfig.MinLatency);
-               
-                //// dla każdego indeksu zredukowanego punktu
-                //if (reducedREyeOverAmpIndexesForCurrSpot.Count > 0)
-                //{
-
-                //    var lowestREyeIndexForCurrentSpot = reducedREyeOverAmpIndexesForCurrSpot.Min();
-                //    //do 'dre' dodajemy wartość najmniejszego indeksu z list zredukowanych punktów (dla aktualnego punktu spot)
-                //    lowestEyeOverAmpIndxesForSpotIndexes.Add(lowestREyeIndexForCurrentSpot);
-
-                //}
+         
             }
 
             // zawezamy znalezione zmiany amplitudy dla oczu tak aby odpowiadaly w miare pewnym zmianom amplitudy markera
@@ -99,7 +149,6 @@ namespace GazeDataViewer.Classes.SpotAndGain
             var results = new ResultData();
             results = new ResultData
             {
-                EarliestEyeOverSpotIndex = earliestEyeOverAmpForSpotOverAmpIndexes,
                 SpotOverMeanIndex = spotAmplitudeOverMeanIndexes,
                 SpotMoves = spotMovePositions,
                 EyeCoords = eyeCoords,

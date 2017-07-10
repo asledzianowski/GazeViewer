@@ -16,8 +16,8 @@ namespace GazeDataViewer.Classes.Serialization
         public List<EyeMove> SaccadePositions { get; set; }
         public List<EyeMove> AntiSaccadePositions { get; set; }
         public List<SpotMove> SpotPositions { get; set; }
-        public List<SaccadeCalculation> SaccadeCalculations { get; set; }
-        public List<SaccadeCalculation> AntiSaccadeCalculations { get; set; }
+        public List<EyeMoveCalculation> SaccadeCalculations { get; set; }
+        public List<EyeMoveCalculation> AntiSaccadeCalculations { get; set; }
 
         public SpotGazeFileData FileData { get; set; }
         public ResultData CurrentResults { get; set; }

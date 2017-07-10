@@ -37,53 +37,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AltaxoCore">
-      <HintPath>..\Externals\AltaxoCore.dll</HintPath>
-    </Reference>
-    <Reference Include="DynamicDataDisplay, Version=0.4.0.0, Culture=neutral, PublicKeyToken=5b7d744a7263923f, processorArchitecture=MSIL">
-      <HintPath>..\packages\DynamicDataDisplayWpf.0.4.0\lib\DynamicDataDisplay.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="DynamicDataDisplay.Maps, Version=0.1.0.0, Culture=neutral, PublicKeyToken=5b7d744a7263923f, processorArchitecture=MSIL">
-      <HintPath>..\packages\DynamicDataDisplayWpf.0.4.0\lib\DynamicDataDisplay.Maps.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="DynamicDataDisplay.Markers, Version=1.0.0.0, Culture=neutral, PublicKeyToken=5b7d744a7263923f, processorArchitecture=MSIL">
-      <HintPath>..\packages\DynamicDataDisplayWpf.0.4.0\lib\DynamicDataDisplay.Markers.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="DynamicDataDisplay.Markers2, Version=1.0.0.0, Culture=neutral, PublicKeyToken=5b7d744a7263923f, processorArchitecture=MSIL">
-      <HintPath>..\packages\DynamicDataDisplayWpf.0.4.0\lib\DynamicDataDisplay.Markers2.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Parser, Version=1.0.0.0, Culture=neutral, PublicKeyToken=5b7d744a7263923f, processorArchitecture=MSIL">
-      <HintPath>..\packages\DynamicDataDisplayWpf.0.4.0\lib\Parser.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xaml">
-      <RequiredTargetFramework>4.0</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="WindowsBase" />
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <ApplicationDefinition Include="App.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </ApplicationDefinition>
-    <Page Include="MainWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -93,7 +48,7 @@
     <Compile Include="Classes\EyeMoveSearch\FileDataProcessor.cs" />
     <Compile Include="Classes\EyeMoveSearch\EyeMoveFinderConfig.cs" />
     <Compile Include="Classes\EyeMoveSearch\IEyeMoveFinder.cs" />
-    <Compile Include="Classes\EyeMoveSearch\Pursuit\PursuitMoveHelper.cs" />
+    <Compile Include="Classes\EyeMoveSearch\PursuitMoveHelper.cs" />
     <Compile Include="Classes\InputAndOutput\InputDataHelper.cs" />
     <Compile Include="Classes\InputAndOutput\OutputDataHelper.cs" />
     <Compile Include="Classes\Denoise\FilterButterworth.cs" />
@@ -107,7 +62,7 @@
     <Compile Include="Classes\EyeMoveSearch\SaccadeSearch\SaccadeDataHelper.cs" />
     <Compile Include="Classes\EyeMoveSearch\SaccadeSearch\SaccadeFinder.cs" />
     <Compile Include="Classes\ParamCalculations\SaccadeParamsCalcuator.cs" />
-    <Compile Include="Classes\ParamCalculations\EyeMoveCalculation.cs" />
+    <Compile Include="Classes\ParamCalculations\SaccadeResult.cs" />
     <Compile Include="Classes\Serialization\SerializationHelper.cs" />
     <Compile Include="Classes\Serialization\SpotEyeTrackState.cs" />
     <Compile Include="Classes\Enums\SeriesNames.cs" />
@@ -151,7 +106,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="FodyWeavers.xml" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
@@ -169,4 +123,29 @@
   <Target Name="AfterBuild">
   </Target>
   -->
+  <ItemGroup>
+    <ReferencePath Include="D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\Externals\AltaxoCore.dll" />
+    <ReferencePath Include="D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\packages\DynamicDataDisplayWpf.0.4.0\lib\DynamicDataDisplay.dll" />
+    <ReferencePath Include="D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\packages\DynamicDataDisplayWpf.0.4.0\lib\DynamicDataDisplay.Maps.dll" />
+    <ReferencePath Include="D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\packages\DynamicDataDisplayWpf.0.4.0\lib\DynamicDataDisplay.Markers.dll" />
+    <ReferencePath Include="D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\packages\DynamicDataDisplayWpf.0.4.0\lib\DynamicDataDisplay.Markers2.dll" />
+    <ReferencePath Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\Microsoft.CSharp.dll" />
+    <ReferencePath Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\mscorlib.dll" />
+    <ReferencePath Include="D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\packages\DynamicDataDisplayWpf.0.4.0\lib\Parser.dll" />
+    <ReferencePath Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\PresentationCore.dll" />
+    <ReferencePath Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\PresentationFramework.dll" />
+    <ReferencePath Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.Core.dll" />
+    <ReferencePath Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.Data.DataSetExtensions.dll" />
+    <ReferencePath Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.Data.dll" />
+    <ReferencePath Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.dll" />
+    <ReferencePath Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.Net.Http.dll" />
+    <ReferencePath Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.Xaml.dll" />
+    <ReferencePath Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.Xml.dll" />
+    <ReferencePath Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\System.Xml.Linq.dll" />
+    <ReferencePath Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.2\WindowsBase.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\obj\Debug\MainWindow.g.cs" />
+    <Compile Include="D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\obj\Debug\App.g.cs" />
+  </ItemGroup>
 </Project>

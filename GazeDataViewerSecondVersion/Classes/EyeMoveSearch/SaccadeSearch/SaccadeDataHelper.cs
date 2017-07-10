@@ -155,6 +155,7 @@ namespace GazeDataViewer.Classes.Saccade
             return new EyeMove
             {
                 Id = id,
+                IsFirstMove = DataAnalyzer.IsEven(id),
 
                 EyeStartIndex = saccadeStartIndex,
                 EyeStartTime = results.TimeDeltas[saccadeStartIndex],
@@ -518,6 +519,23 @@ namespace GazeDataViewer.Classes.Saccade
             }
 
             return velocities;
+        }
+
+        public static List<double> CountOnScreenDistance(double[] saccadeCoords)
+        {
+            int currentPointStart = 0;
+            int currentPointEnd = 1;
+            var distanceDeltas = new List<double>();
+
+            while (currentPointEnd < saccadeCoords.Count())
+            {
+                var distanceDelta = Math.Abs(saccadeCoords[currentPointEnd] - saccadeCoords[currentPointStart]);
+                distanceDeltas.Add(distanceDelta * 7);
+                currentPointStart++;
+                currentPointEnd++;
+            }
+
+            return distanceDeltas;
         }
 
         private static double CalculateTotalDistance(double[] coords)

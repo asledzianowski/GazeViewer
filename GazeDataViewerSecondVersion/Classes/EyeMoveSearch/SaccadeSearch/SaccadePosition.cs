@@ -25,6 +25,7 @@ namespace GazeDataViewer.Classes.Saccade
 
         public EyeMoveTypes EyeMoveType { get; set; }
         public SpotMove SpotMove { get; set; }
+        public bool IsFirstMove { get; set; }
 
-    }
+}
 }

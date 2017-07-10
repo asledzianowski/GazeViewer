@@ -15,7 +15,31 @@ namespace GazeDataViewer.Classes.DataAndLog
 {
     public class OutputHelper
     {
-        public static string GetTextLog(List<SaccadeCalculation> results, ResultData currentSpotEyePointsForSaccades,
+
+        public static string GetPursuitTextLog(EyeMoveCalculation calc)
+        {
+            var sb = new StringBuilder();
+            var sep = "  ";
+            var rowSep = "=========================================";
+
+            sb.Append(rowSep);
+            sb.Append(Environment.NewLine);
+            sb.Append($"Date/Time: {DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}");
+            sb.Append(Environment.NewLine);
+            sb.Append($"Results for: {EyeMoveTypes.Pursuit} Move");
+            sb.Append(Environment.NewLine);
+            sb.Append(rowSep);
+            sb.Append(Environment.NewLine);
+            sb.Append(Environment.NewLine);
+
+            sb.Append($"Eye/Spot gain: {Math.Round(calc.Gain, 2)} ");
+            sb.Append(Environment.NewLine);
+            sb.Append($"Eye/Approx.Eye gain: {Math.Round(calc.ApproxGain,2)} ");
+            sb.Append(Environment.NewLine);
+            return sb.ToString();
+        }
+
+        public static string GetSaccAntiSaccTextLog(List<EyeMoveCalculation> results, ResultData currentSpotEyePointsForSaccades,
             EyeMoveTypes eyeMoveType)
         {
             var sb = new StringBuilder();
@@ -26,7 +50,7 @@ namespace GazeDataViewer.Classes.DataAndLog
             sb.Append(Environment.NewLine);
             sb.Append($"Date/Time: {DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}");
             sb.Append(Environment.NewLine);
-            sb.Append($"Results for: {eyeMoveType}s");
+            sb.Append($"Results for: {eyeMoveType}s. Item Count: {results.Count}");
             sb.Append(Environment.NewLine);
             sb.Append(rowSep);
             sb.Append(Environment.NewLine);
@@ -35,6 +59,8 @@ namespace GazeDataViewer.Classes.DataAndLog
             foreach (var result in results)
             {
                 sb.Append($"{result.EyeMoveType} Id: {result.Id}");
+                sb.Append(Environment.NewLine);
+                sb.Append($"First in Spot Sequence: {result.IsFirstMove}");
                 sb.Append(Environment.NewLine);
                 sb.Append($"Spot Start Index: {result.SpotStartIndex}");
                 sb.Append(Environment.NewLine);
@@ -108,8 +134,8 @@ namespace GazeDataViewer.Classes.DataAndLog
         }
 
 
-        public static string GetCsvOutput(bool addHeader, List<SaccadeCalculation> saccadeCalculations, 
-            List<SaccadeCalculation> antiSaccadeCalculations, CalcConfig config, FiltersConfig filtersConfig)
+        public static string GetCsvOutput(bool addHeader, List<EyeMoveCalculation> saccadeCalculations, 
+            List<EyeMoveCalculation> antiSaccadeCalculations, CalcConfig config, FiltersConfig filtersConfig)
         {
             string csvDelimiter = " "; //"\t";
             var sb = new StringBuilder();
@@ -117,6 +143,7 @@ namespace GazeDataViewer.Classes.DataAndLog
             if (addHeader)
             {
                 sb.Append("ID" + csvDelimiter);
+                sb.Append("FirstInSeq" + csvDelimiter);
                 sb.Append("EyeMoveType" + csvDelimiter);
                 sb.Append("Latency" + csvDelimiter);
                 sb.Append("Duration" + csvDelimiter);
@@ -133,6 +160,7 @@ namespace GazeDataViewer.Classes.DataAndLog
             foreach (var outputItem in outputItems)
             {
                 sb.Append(outputItem.Id + csvDelimiter);
+                sb.Append(outputItem.IsFirstMove + csvDelimiter);
                 sb.Append(outputItem.EyeMoveType + csvDelimiter);
                 sb.Append(outputItem.Latency + csvDelimiter);
                 sb.Append(outputItem.Duration + csvDelimiter);

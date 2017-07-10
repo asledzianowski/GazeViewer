@@ -64,6 +64,7 @@ namespace GazeDataViewer.Classes.AntiSaccade
                 return new EyeMove
                 {
                     Id = id,
+                    IsFirstMove = DataAnalyzer.IsEven(id),
 
                     IsStartFound = isStartFound,
                     EyeStartIndex = antiSaccadeStartIndex,

@@ -26,12 +26,12 @@ namespace GazeDataViewer.Classes.Saccade
             this.trackerFrequency = trackerFrequency;
         }
 
-        public List<SaccadeCalculation> Calculate(List<EyeMove> eyeMovePositions, EyeMoveTypes eyeMoveType)
+        public List<EyeMoveCalculation> Calculate(List<EyeMove> eyeMovePositions, EyeMoveTypes eyeMoveType)
         {
-            var saccCalculations = new List<SaccadeCalculation>();
+            var saccCalculations = new List<EyeMoveCalculation>();
             foreach(var saccadePosition in eyeMovePositions)
             {
-                var saccParams = CalculateSaccadeParams(saccadePosition, this.eyeCoords, this.spotCoords, eyeMoveType);
+                var saccParams = CalculateSaccadeParams(saccadePosition, eyeMoveType);
                 saccCalculations.Add(saccParams);
             }
 
@@ -41,24 +41,12 @@ namespace GazeDataViewer.Classes.Saccade
 
         private List<double> CountOnScreenDistance(double[] saccadeCoords)
         {
-            int currentPointStart = 0;
-            int currentPointEnd = 1;
-            var distanceDeltas = new List<double>();
-
-            while (currentPointEnd < saccadeCoords.Count())
-            {
-                var distanceDelta = Math.Abs(saccadeCoords[currentPointEnd] - saccadeCoords[currentPointStart]);
-                distanceDeltas.Add(distanceDelta * 7);
-                currentPointStart++;
-                currentPointEnd++;
-            }
-
-            return distanceDeltas;
+            return SaccadeDataHelper.CountOnScreenDistance(saccadeCoords);
         }
 
        
 
-        private SaccadeCalculation CalculateSaccadeParams(EyeMove saccadePosition, double[] eyeCoords, double[] spotCoords, EyeMoveTypes eyeMoveType)
+        public EyeMoveCalculation CalculateSaccadeParams(EyeMove saccadePosition,  EyeMoveTypes eyeMoveType)
         {
             var frameCount = Math.Abs(saccadePosition.EyeEndIndex - saccadePosition.EyeStartIndex); //+ 1;
 
@@ -96,9 +84,10 @@ namespace GazeDataViewer.Classes.Saccade
             var velocity = amplitude / duration;
             var gain = multipiedDistanceOnScreen / spotMoveDistanceOnScreen ;
 
-            return new SaccadeCalculation
+            return new EyeMoveCalculation
             {
                 Id = saccadePosition.Id,
+                IsFirstMove = saccadePosition.IsFirstMove,
                 EyeMoveType = eyeMoveType,
                 SpotStartIndex = saccadePosition.SpotMove.SpotStartIndex,
                 SpotEndIndex = saccadePosition.SpotMove.SpotEndIndex,

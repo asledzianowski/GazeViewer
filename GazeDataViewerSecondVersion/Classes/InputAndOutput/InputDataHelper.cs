@@ -34,6 +34,16 @@ namespace GazeDataViewer.Classes
             return path.EndsWith(".xml");
         }
 
+        public static SpotGazeFileData CloneFileData( SpotGazeFileData originalData)
+        {
+            return new SpotGazeFileData
+            {
+                Eye = originalData.Eye,
+                Spot = originalData.Spot,
+                Time = originalData.Time,
+                TimeDeltas = originalData.TimeDeltas
+            };
+        }
 
         public static SpotGazeFileData LoadDataForSpotAndGaze(string filePath, int timeColumnIndex, int eyeColumnIndex, int spotColumnIndex)
         {
@@ -48,6 +58,7 @@ namespace GazeDataViewer.Classes
             outputData.Eye = new double[lines.Length - 1];
             outputData.Spot = new double[lines.Length - 1];
 
+            var isFileRead = true;
 
             for (int i=0; i < lines.Length-1; i++)
             {
@@ -68,6 +79,7 @@ namespace GazeDataViewer.Classes
                     if (!isTimeConverted || /*!isLEyeConverted ||*/ !isREyeConverted || !isSopotConverted)
                     {
                         MessageBox.Show("Invalid format in input file at line " + i);
+                        isFileRead = false;
                         break;
                     }
                     else
@@ -88,8 +100,16 @@ namespace GazeDataViewer.Classes
                 }
             }
 
-            outputData.TimeDeltas = GetDeltaTimespansInt(outputData.Time);
-            return outputData;
+
+            if (isFileRead)
+            {
+                outputData.TimeDeltas = GetDeltaTimespansInt(outputData.Time);
+                return outputData;
+            }
+            else
+            {
+                return null;
+            }
         }
 
 
@@ -101,7 +121,10 @@ namespace GazeDataViewer.Classes
             for (int i = 0; i < timestamps.Length; i++)
             {
                 var timeSpan = timestamps[i] - startTime;
-                stime.Add(timeSpan);
+                if (!stime.Contains(timeSpan))
+                {
+                    stime.Add(timeSpan);
+                }
             }
             return stime.ToArray();
         }
@@ -121,7 +144,6 @@ namespace GazeDataViewer.Classes
         {
             return new ResultData
             {
-                EarliestEyeOverSpotIndex = resultData.EarliestEyeOverSpotIndex.Skip(skipCount).Take(takeCount).ToList(),
                 SpotOverMeanIndex = resultData.SpotOverMeanIndex.Skip(skipCount).Take(takeCount).ToList(),
                 EyeCoords = resultData.EyeCoords.Skip(skipCount).Take(takeCount).ToArray(),
                 SpotCoords = resultData.SpotCoords.Skip(skipCount).Take(takeCount).ToArray(),
@@ -137,12 +159,17 @@ namespace GazeDataViewer.Classes
             int initStartTime = -1;
             int initEndTime = -1;
 
-            if (eyeMoveType == EyeMoveTypes.Saccade)
+            if (eyeMoveType == EyeMoveTypes.Pursuit)
             {
-                initStartTime = 10676000;
+                initStartTime = 1;
+                initEndTime = 9231000;
+            }
+            else if (eyeMoveType == EyeMoveTypes.Saccade)
+            {
+                initStartTime = 10676000; //9946000;
                 initEndTime = 15095000;
             }
-            else
+            else if (eyeMoveType == EyeMoveTypes.AntiSaccade)
             {
                 initStartTime = 15426000;
                 initEndTime = 19844000;

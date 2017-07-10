@@ -64,7 +64,7 @@ namespace GazeDataViewer.Classes.Saccade
                 return new EyeMove
                 {
                     Id = id,
-
+                    IsFirstMove = DataAnalyzer.IsEven(id),
                     IsStartFound = isStartFound,
                     EyeStartIndex = saccadeStartIndex,
                     EyeStartTime = results.TimeDeltas[saccadeStartIndex],

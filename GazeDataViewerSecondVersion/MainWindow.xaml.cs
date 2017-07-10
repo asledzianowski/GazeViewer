@@ -44,8 +44,9 @@ namespace GazeDataViewer
         List<EyeMove> SaccadePositions { get; set; } = new List<EyeMove>();
         List<EyeMove> AntiSaccadePositions { get; set; } = new List<EyeMove>();
         List<SpotMove> SpotMovePositions { get; set; } = new List<SpotMove>();
-        List<SaccadeCalculation> SaccadeCalculations { get; set; } = new List<SaccadeCalculation>();
-        List<SaccadeCalculation> AntiSaccadeCalculations { get; set; } = new List<SaccadeCalculation>();
+        List<EyeMoveCalculation> SaccadeCalculations { get; set; } = new List<EyeMoveCalculation>();
+        List<EyeMoveCalculation> AntiSaccadeCalculations { get; set; } = new List<EyeMoveCalculation>();
+        EyeMoveCalculation PursuitMoveCalculations { get; set; } = new EyeMoveCalculation();
 
 
         public MainWindow()
@@ -61,7 +62,6 @@ namespace GazeDataViewer
             {
                 LoadDataPathTextBox.Text = dialog.FileName;
                 LoadDataAndAnalyze(dialog.FileName);
-                UnlockControll(true);
             }
             else
             {
@@ -77,6 +77,7 @@ namespace GazeDataViewer
             GBFilters.IsEnabled = isEnabled;
             GBSaccades.IsEnabled = isEnabled;
             GBAntiSaccades.IsEnabled = isEnabled;
+            GBPursuit.IsEnabled = isEnabled;
             GBPredictions.IsEnabled = isEnabled;
             GBResults.IsEnabled = isEnabled;
             GBTextOutput.IsEnabled = isEnabled;
@@ -88,10 +89,21 @@ namespace GazeDataViewer
             var eyeColumnIndex = int.Parse(TBEyeColumnIndex.Text);
             var spotColumnIndex = int.Parse(TBSpotColumnIndex.Text);
 
-            this.FileData = InputDataHelper.LoadDataForSpotAndGaze(eyeFilePath, timeColumnIndex, eyeColumnIndex, spotColumnIndex);
-            TBEndRec.Text = FileData.Time.Length.ToString();
-            var calcConfig = GetCurrentCalcConfig();
-            Analyze(this.FileData, calcConfig);
+            var fileData = InputDataHelper.LoadDataForSpotAndGaze(eyeFilePath, timeColumnIndex, eyeColumnIndex, spotColumnIndex);
+
+            if (fileData != null)
+            {
+                this.FileData = fileData;
+                TBEndRec.Text = FileData.Time.Length.ToString();
+                var calcConfig = GetCurrentCalcConfig();
+                var dataClone = InputDataHelper.CloneFileData(this.FileData);
+                Analyze(dataClone, calcConfig);
+                UnlockControll(true);
+            }
+            else
+            {
+                MessageBox.Show("Unable to process the file. Check column order or file text.");
+            }
         }
 
         private void BulkProcessFiles()
@@ -124,11 +136,7 @@ namespace GazeDataViewer
                     filterConfig.SavitzkyGolayNumberOfPoints = Math.Abs(calcConfig.RecEnd - calcConfig.RecStart) - 1;
                     TBSavGoayPointsNum.Text = filterConfig.SavitzkyGolayNumberOfPoints.ToString();
                 }
-
-                var recLenght = (calcConfig.RecEnd - calcConfig.RecStart);
-                fileData = InputDataHelper.CutData(fileData, calcConfig.RecStart, recLenght);
-
-                
+  
                 if (filterConfig.FilterByButterworth)
                 {
                     fileData.Eye = FilterController.FilterByButterworth(filterConfig, fileData.Eye);
@@ -139,21 +147,54 @@ namespace GazeDataViewer
                     fileData.Eye = FilterController.FilterBySavitzkyGolay(filterConfig, fileData.Eye);
                 }
 
+
+                var recLenght = (calcConfig.RecEnd - calcConfig.RecStart);
+                fileData = InputDataHelper.CutData(fileData, calcConfig.RecStart, recLenght);
+
+                this.SaccadeCalculations.Clear();
+                this.AntiSaccadeCalculations.Clear();
                 this.SpotMovePositions.Clear();
                 this.SaccadePositions.Clear();
                 this.AntiSaccadePositions.Clear();
                 GraphClearElements();
                 ApplyEyeSpotSinusoids(fileData.TimeDeltas, fileData.Eye, fileData.Spot);
 
-                SpotEyePoints = DataAnalyzer.FindSpotEyePointsForSaccadeAntiSaccadeSearch(fileData, calcConfig);
-               
-                var saccadeSpotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.Saccade);
-                var antiSaccadeSpotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.AntiSaccade);
+                //move swith timestamp 9231000 / initial index 5850
+                var saccadesStartTime = fileData.Time.FirstOrDefault(x => x >= 9231000);
+                if(saccadesStartTime == 0)
+                {
+                    saccadesStartTime = fileData.Time.LastOrDefault();
+                }
 
-                this.ApplySpotPointMarkers(this.SpotEyePoints);
+                var saccadesStartIndex = Array.IndexOf(fileData.Time, saccadesStartTime); //1
 
-                PlotSaccAntiSaccData(saccadeSpotBlock, SpotEyePoints, calcConfig, EyeMoveTypes.Saccade);
-                PlotSaccAntiSaccData(antiSaccadeSpotBlock, SpotEyePoints, calcConfig, EyeMoveTypes.AntiSaccade);
+                var pursuitMovesBlock = InputDataHelper.CutData(fileData, 0, saccadesStartIndex - 1);
+                var saccadesMovesBlock = InputDataHelper.CutData(fileData, saccadesStartIndex, fileData.Spot.Length - saccadesStartIndex);
+
+                if (pursuitMovesBlock.Spot.Length > 0)
+                {
+                    var approxPursuitSpotEyePoints = DataAnalyzer.GetApproxEyeSinusoidForPursuitSearch(pursuitMovesBlock, calcConfig);
+                    ApplyPursutiApproximationSinusoid(approxPursuitSpotEyePoints.Keys.ToArray(), approxPursuitSpotEyePoints.Values.ToArray());
+                    this.PursuitMoveCalculations = DataAnalyzer.CountPursoitParameters(fileData, approxPursuitSpotEyePoints, calcConfig);
+                }
+
+                if (saccadesMovesBlock.Spot.Length > 0)
+                {
+                    SpotEyePoints = DataAnalyzer.FindSpotEyePointsForSaccadeAntiSaccadeSearch(saccadesMovesBlock, calcConfig);
+
+                    var saccadeSpotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.Saccade);
+                    var antiSaccadeSpotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.AntiSaccade);
+
+                    this.ApplySpotPointMarkers(this.SpotEyePoints);
+
+                    //var fakeSacc = SpotEyePoints.SpotMoves.Select(x => x.SpotStartIndex).ToList();
+                    PlotSaccAntiSaccData(saccadeSpotBlock, SpotEyePoints, calcConfig, EyeMoveTypes.Saccade);
+                    PlotSaccAntiSaccData(antiSaccadeSpotBlock, SpotEyePoints, calcConfig, EyeMoveTypes.AntiSaccade);
+                }
+                if (CBFixView.IsChecked == false && fileData?.TimeDeltas?.Length > 0 && fileData?.Eye?.Length > 0)
+                {
+                    FitGraphView(fileData);
+                }
             }
             else
             {
@@ -176,7 +217,10 @@ namespace GazeDataViewer
             {
                 finder = new AntiSaccadeFinder(calcConfig.AntiSaccadeMoveFinderConfig);
             }
-                
+
+
+            var saccadeParamsCalcuator = new SaccadeParamsCalcuator(fullData.EyeCoords, fullData.SpotCoords, calcConfig.DistanceFromScreen, calcConfig.TrackerFrequency);
+
             for (int i = 0; i < spotOverMeanPoints.Count; i++)
             {
                 var spotOverMeanIndex = spotOverMeanPoints[i];
@@ -190,7 +234,11 @@ namespace GazeDataViewer
                         eyeMove = finder.TryFindEyeMove(i, spotOverMeanIndex, currentSpotShiftIndex, fullData);
                         if (eyeMove != null)
                         {
-                            SaccadePositions.Add(eyeMove);
+                            var saccParams = saccadeParamsCalcuator.CalculateSaccadeParams(eyeMove, eyeMove.EyeMoveType);
+                            if (saccParams.Amplitude <= calcConfig.SaccadeMoveFinderConfig.MaxAmp)
+                            {
+                                SaccadePositions.Add(eyeMove);
+                            }
                         }
                     }
                     else
@@ -198,7 +246,11 @@ namespace GazeDataViewer
                         eyeMove = finder.TryFindEyeMove(i, spotOverMeanIndex, currentSpotShiftIndex, fullData);
                         if (eyeMove != null)
                         {
-                            AntiSaccadePositions.Add(eyeMove);
+                            var antiSaccParams = saccadeParamsCalcuator.CalculateSaccadeParams(eyeMove, eyeMove.EyeMoveType);
+                            if (antiSaccParams.Amplitude <= calcConfig.AntiSaccadeMoveFinderConfig.MaxAmp)
+                            {
+                                AntiSaccadePositions.Add(eyeMove);
+                            }
                         }
                     }
                 }
@@ -207,10 +259,6 @@ namespace GazeDataViewer
 
             ApplySaccadeAndAntiSaccadeElements(this.SaccadePositions, this.AntiSaccadePositions);
 
-            if (CBFixView.IsChecked == false)
-            {
-                FitGraphView(this.SpotEyePoints);
-            }
         }
 
         private void ApplySaccadeAndAntiSaccadeElements(List<EyeMove> saccades, List<EyeMove> antiSaccades)
@@ -220,16 +268,16 @@ namespace GazeDataViewer
             ApplySaccadeControls(SaccadePositions, AntiSaccadePositions);
         }
 
-        private void FitGraphView(ResultData spotEyePoints)
+        private void FitGraphView(SpotGazeFileData results)
         {
             //fit to view with margins
-            var yMargin = ((spotEyePoints.EyeCoords.Max() - spotEyePoints.EyeCoords.Min()) / 10);
-            var xMargin = ((spotEyePoints.TimeDeltas.Max() - spotEyePoints.TimeDeltas.Min()) / 20);
+            var yMargin = ((results.Eye.Max() - results.Eye.Min()) / 10);
+            var xMargin = ((results.TimeDeltas.Max() - results.TimeDeltas.Min()) / 20);
 
-            var xMin = spotEyePoints.TimeDeltas.Min() - xMargin;
-            var xMax = spotEyePoints.TimeDeltas.Max() + xMargin;
-            var yMin = spotEyePoints.EyeCoords.Min() - yMargin;
-            var yMax = spotEyePoints.EyeCoords.Max() + yMargin;
+            var xMin = results.TimeDeltas.Min() - xMargin;
+            var xMax = results.TimeDeltas.Max() + xMargin;
+            var yMin = results.Eye.Min() - yMargin;
+            var yMax = results.Eye.Max() + yMargin;
 
             amplitudePlotter.FitToView();
             amplitudePlotter.Viewport.Visible = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
@@ -263,6 +311,26 @@ namespace GazeDataViewer
             amplitudePlotter.Children.Add(line);
         }
 
+        private void ApplyPursutiApproximationSinusoid(int[] timeDeltas, double[] eyeCoords)
+        {
+            var timeAxisDataSource = new EnumerableDataSource<int>(timeDeltas);
+            timeAxisDataSource.SetXMapping(x => x);
+
+            var eyeDataSource = new EnumerableDataSource<double>(eyeCoords);
+            eyeDataSource.SetYMapping(x => x);
+
+            var eyeCompositeDataSource = new CompositeDataSource(timeAxisDataSource, eyeDataSource);
+
+            LineGraph line;
+
+            line = new LineGraph(eyeCompositeDataSource);
+            line.LinePen = new Pen(Brushes.YellowGreen, 2);
+            line.LinePen.DashStyle = DashStyles.Dash;
+            Legend.SetDescription(line, "Approx. Eye");
+            amplitudePlotter.Children.Add(line);
+
+            
+        }
         private void ApplySpotPointMarkers(ResultData spotEyePoints)
         {
             SpotMovePositions = spotEyePoints.SpotMoves;
@@ -522,6 +590,7 @@ namespace GazeDataViewer
             TBSaccSearchLength.Text = config.MoveSearchWindowLength.ToString();
             TBSaccControlLength.Text = config.ControlWindowLength.ToString();
             TBSaccControlAmpDivider.Text = config.ControlAmpDivider.ToString();
+            TBSaccMaxAmp.Text = config.MaxAmp.ToString();
         }
 
         private void SetAntiSaccadeFinderConfigGUI(EyeMoveFinderConfig config)
@@ -533,16 +602,24 @@ namespace GazeDataViewer
             TBAntiSaccSearchLength.Text = config.MoveSearchWindowLength.ToString();
             TBAntiSaccControlLength.Text = config.ControlWindowLength.ToString();
             TBAntiSaccControlAmpDivider.Text = config.ControlAmpDivider.ToString();
+            TBAntiSaccMaxAmp.Text = config.MaxAmp.ToString();
+        }
+
+
+        private void SetPursuitFinderConfigGUI(EyeMoveFinderConfig config)
+        {
+            TBPursuitMinLatency.Text = config.MinLatency.ToString();
         }
 
         private CalcConfig GetCurrentCalcConfig()
         {
             var saccadeConfig = GetCurrentSaccadeFinderConfig();
             var antiSaccadeConfig = GetCurrentAntiSaccadeFinderConfig();
+            var pursuitConfig = GetCurrentPursuitFinderConfig();
             var calcConfig = new CalcConfig();
             calcConfig.SaccadeMoveFinderConfig = saccadeConfig;
             calcConfig.AntiSaccadeMoveFinderConfig = antiSaccadeConfig;
-
+            calcConfig.PursuitMoveFinderConfig = pursuitConfig;
             int recStart;
             int recEnd;
             int eyeShiftPeriod;
@@ -762,6 +839,7 @@ namespace GazeDataViewer
             double minLength;
             double controlAmpDivider;
             int minInhibition;
+            int maxAmp;
 
             var isMinLatency = int.TryParse(TBSaccMinLatency.Text, out minLatency);
             if (isMinLatency)
@@ -833,6 +911,16 @@ namespace GazeDataViewer
                 MessageBox.Show($"Wrong value of 'Saccade Min. Inhibition'. Should be { eyeMoveFinderConfig.MinInhibition.GetType().Name}.");
             }
 
+            var isMaxAmp = int.TryParse(TBSaccMaxAmp.Text, out maxAmp);
+            if (isMaxAmp)
+            {
+                eyeMoveFinderConfig.MaxAmp = maxAmp;
+            }
+            else
+            {
+                MessageBox.Show($"Wrong value of 'Saccade Max.Amplitude'. Should be { eyeMoveFinderConfig.MaxAmp.GetType().Name}.");
+            }
+
             return eyeMoveFinderConfig;
         }
 
@@ -846,6 +934,7 @@ namespace GazeDataViewer
             double minLength;
             double controlAmpDivider;
             int minInhibition;
+            int maxAmp;
 
             var isMinLatency = int.TryParse(TBAntiSaccMinLatency.Text, out minLatency);
             if (isMinLatency)
@@ -916,12 +1005,50 @@ namespace GazeDataViewer
             {
                 MessageBox.Show($"Wrong value of 'AntiSaccade Min. Inhibition'. Should be { eyeMoveFinderConfig.MinInhibition.GetType().Name}.");
             }
+            var isMaxAmp = int.TryParse(TBAntiSaccMaxAmp.Text, out maxAmp);
+            if (isMaxAmp)
+            {
+                eyeMoveFinderConfig.MaxAmp = maxAmp;
+            }
+            else
+            {
+                MessageBox.Show($"Wrong value of 'AntiSaccade Max.Amplitude'. Should be { eyeMoveFinderConfig.MaxAmp.GetType().Name}.");
+            }
+
+            return eyeMoveFinderConfig;
+        }
+
+        private EyeMoveFinderConfig GetCurrentPursuitFinderConfig()
+        {
+            var eyeMoveFinderConfig = new EyeMoveFinderConfig();
+            int minLatency;
+            double approxMultiplication;
+
+            var isMinLatency = int.TryParse(TBPursuitMinLatency.Text, out minLatency);
+            if (isMinLatency)
+            {
+                eyeMoveFinderConfig.MinLatency = minLatency;
+            }
+            else
+            {
+                MessageBox.Show($"Wrong value of 'Pursuit Move Min Latency'. Should be { eyeMoveFinderConfig.MinLatency.GetType().Name}.");
+            }
+
+            var isApproxMultiplication = double.TryParse(TBPursuitApproxMultiplication.Text.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out approxMultiplication);
+            if (isApproxMultiplication)
+            {
+                eyeMoveFinderConfig.Multiplication = approxMultiplication;
+            }
+            else
+            {
+                MessageBox.Show($"Wrong value of 'Pursuit Approx.Multiplication'. Should be { eyeMoveFinderConfig.Multiplication.GetType().Name}.");
+            }
 
             return eyeMoveFinderConfig;
         }
         #endregion
 
-        #region UI Events
+            #region UI Events
 
         private void NumberValidationTextBox(object sender, TextCompositionEventArgs e)
         {
@@ -954,7 +1081,8 @@ namespace GazeDataViewer
         private void ButtonCalculate_Click(object sender, RoutedEventArgs e)
         {
             var calcConfig = GetCurrentCalcConfig();
-            Analyze(this.FileData, calcConfig);
+            var dataClone = InputDataHelper.CloneFileData(this.FileData);
+            Analyze(dataClone, calcConfig);
         }
 
 
@@ -1007,10 +1135,11 @@ namespace GazeDataViewer
         {
             CalculateParameters();
 
-            var saccadeTextResults = OutputHelper.GetTextLog(this.SaccadeCalculations, this.SpotEyePoints, EyeMoveTypes.Saccade);
-            var antiSaccadeTextResults = OutputHelper.GetTextLog(this.AntiSaccadeCalculations, this.SpotEyePoints, EyeMoveTypes.AntiSaccade);
+            var pursuitTextResults = OutputHelper.GetPursuitTextLog(this.PursuitMoveCalculations);
+            var saccadeTextResults = OutputHelper.GetSaccAntiSaccTextLog(this.SaccadeCalculations, this.SpotEyePoints, EyeMoveTypes.Saccade);
+            var antiSaccadeTextResults = OutputHelper.GetSaccAntiSaccTextLog(this.AntiSaccadeCalculations, this.SpotEyePoints, EyeMoveTypes.AntiSaccade);
 
-            var currentText = saccadeTextResults + antiSaccadeTextResults + LogTextBox.Text.ToString();
+            var currentText = pursuitTextResults + saccadeTextResults + antiSaccadeTextResults + LogTextBox.Text.ToString();
             LogTextBox.Text = currentText;
         }
 
@@ -1018,7 +1147,7 @@ namespace GazeDataViewer
         {
             var spotStartTimeStamp = (double)ComboAddEMSpot.SelectedItem;
             var spot = SpotMovePositions.FirstOrDefault(x => x.SpotStartTimeStamp == spotStartTimeStamp);
-
+            var spotIndex = SpotMovePositions.IndexOf(spot);
             var spotStartIndex = spot.SpotStartIndex;
             var eyeStartIndex = spotStartIndex;
             var eyeShift = int.Parse(TBEyeShiftPeroid.Text);
@@ -1027,7 +1156,21 @@ namespace GazeDataViewer
             var eyeMoveEndIndex = SaccadeDataHelper.CountEyeShiftIndex(eyeStartIndex, eyeShift);
 
             int newId;
-            if (this.SaccadePositions.Last().Id > this.AntiSaccadePositions.Last().Id)
+
+            if (this.SaccadePositions == null && this.AntiSaccadePositions == null)
+            {
+                newId = 0;
+            }
+
+            else if(this.SaccadePositions == null)
+            {
+                newId = this.AntiSaccadePositions.Last().Id + 1;
+            }
+            else if(this.AntiSaccadePositions == null)
+            {
+                newId = this.SaccadePositions.Last().Id + 1;
+            }
+            else if (this.SaccadePositions.Last().Id > this.AntiSaccadePositions.Last().Id)
             {
                 newId = this.SaccadePositions.Last().Id + 1;
             }
@@ -1039,6 +1182,7 @@ namespace GazeDataViewer
             var newEyeMove = new EyeMove
             {
                 Id = newId,
+                IsFirstMove = DataAnalyzer.IsEven(spotIndex),
                 IsStartFound = true,
                 EyeStartIndex = eyeStartIndex,
                 EyeStartCoord = SpotEyePoints.EyeCoords[eyeStartIndex],
@@ -1117,11 +1261,12 @@ namespace GazeDataViewer
         private void ComboBoxAddMoveType_Loaded(object sender, RoutedEventArgs e)
         {
             List<string> data = new List<string>();
-
-            foreach (var passType in Enum.GetValues(typeof(EyeMoveTypes)))
-            {
-                data.Add(passType.ToString());
-            }
+            data.Add(EyeMoveTypes.Saccade.ToString());
+            data.Add(EyeMoveTypes.AntiSaccade.ToString());
+            //foreach (var passType in Enum.GetValues(typeof(EyeMoveTypes)))
+            //{
+            //    data.Add(passType.ToString());
+            //}
 
             var comboBox = sender as ComboBox;
             comboBox.ItemsSource = data;
@@ -1214,6 +1359,7 @@ namespace GazeDataViewer
                     this.SetFilterConfigGUI(spotGazeTrackState.FiltersConfig);
                     this.SetSaccadeFinderConfigGUI(spotGazeTrackState.CalcConfig.SaccadeMoveFinderConfig);
                     this.SetAntiSaccadeFinderConfigGUI(spotGazeTrackState.CalcConfig.AntiSaccadeMoveFinderConfig);
+                    this.SetPursuitFinderConfigGUI(spotGazeTrackState.CalcConfig.PursuitMoveFinderConfig);
                     this.SaccadePositions = spotGazeTrackState.SaccadePositions;
                     this.AntiSaccadePositions = spotGazeTrackState.AntiSaccadePositions;
                     this.FileData = spotGazeTrackState.FileData;
@@ -1222,10 +1368,10 @@ namespace GazeDataViewer
                     this.SaccadeCalculations = spotGazeTrackState.SaccadeCalculations;
                     this.AntiSaccadeCalculations = spotGazeTrackState.AntiSaccadeCalculations;
 
-
-                    var cutTimeDeltas = this.FileData.TimeDeltas.Skip(spotGazeTrackState.CalcConfig.RecStart).Take(this.FileData.TimeDeltas.Length - spotGazeTrackState.CalcConfig.RecStart).ToArray();
-                    var cutEyeCoords = this.FileData.Eye.Skip(spotGazeTrackState.CalcConfig.RecStart).Take(this.FileData.Eye.Length - spotGazeTrackState.CalcConfig.RecStart).ToArray();
-                    var cutSpotCoords = this.FileData.Spot.Skip(spotGazeTrackState.CalcConfig.RecStart).Take(this.FileData.Spot.Length - spotGazeTrackState.CalcConfig.RecStart).ToArray();
+                    var fileItemsCount = spotGazeTrackState.CalcConfig.RecEnd - spotGazeTrackState.CalcConfig.RecStart;
+                    var cutTimeDeltas = this.FileData.TimeDeltas.Skip(spotGazeTrackState.CalcConfig.RecStart).Take(fileItemsCount).ToArray();
+                    var cutEyeCoords = this.FileData.Eye.Skip(spotGazeTrackState.CalcConfig.RecStart).Take(fileItemsCount).ToArray();
+                    var cutSpotCoords = this.FileData.Spot.Skip(spotGazeTrackState.CalcConfig.RecStart).Take(fileItemsCount).ToArray();
 
 
                     this.ApplyEyeSpotSinusoids(cutTimeDeltas, cutEyeCoords, cutSpotCoords);
@@ -1235,7 +1381,7 @@ namespace GazeDataViewer
                     this.UnlockControll(true);
                     if (CBFixView.IsChecked == false)
                     {
-                        FitGraphView(this.SpotEyePoints);
+                        FitGraphView(this.FileData);
                     }
 
 
@@ -1298,12 +1444,20 @@ namespace GazeDataViewer
                     case "ExpanderFilters":
                         GBSaccades.Visibility = Visibility.Collapsed;
                         GBAntiSaccades.Visibility = Visibility.Collapsed;
+                        GBPursuit.Visibility = Visibility.Collapsed;
                         break;
                     case "ExpanderSaccades":
                         GBAntiSaccades.Visibility = Visibility.Collapsed;
                         GBFilters.Visibility = Visibility.Collapsed;
+                        GBPursuit.Visibility = Visibility.Collapsed;
                         break;
                     case "ExpanderAntiSaccades":
+                        GBSaccades.Visibility = Visibility.Collapsed;
+                        GBFilters.Visibility = Visibility.Collapsed;
+                        GBPursuit.Visibility = Visibility.Collapsed;
+                        break;
+                    case "ExpanderPursuit":
+                        GBAntiSaccades.Visibility = Visibility.Collapsed;
                         GBSaccades.Visibility = Visibility.Collapsed;
                         GBFilters.Visibility = Visibility.Collapsed;
                         break;
@@ -1317,6 +1471,8 @@ namespace GazeDataViewer
             GBFilters.Visibility = Visibility.Visible;
             GBSaccades.Visibility = Visibility.Visible;
             GBAntiSaccades.Visibility = Visibility.Visible;
+            GBPursuit.Visibility = Visibility.Visible;
+
         }
 
 

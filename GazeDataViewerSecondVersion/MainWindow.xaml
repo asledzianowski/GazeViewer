@@ -301,7 +301,8 @@
                                     <TextBox Grid.Column="5" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="20" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSaccControlLength"></TextBox>
 
-                                    <Label Grid.Column="6" Grid.Row="0" Content="Contrl.Amp./:" HorizontalAlignment="Right"></Label>
+                                    <Label Grid.Column="6" Grid.Row="0" Content="Contrl.Amp./:" HorizontalAlignment="Right"
+                                            ToolTip="Control amplitude divider: ControlWindow(max-min)/x compared for displacement between 1 i 2 frame."></Label>
                                     <TextBox Grid.Column="7" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="3" PreviewTextInput="DecimalValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSaccControlAmpDivider"
                              ></TextBox>
@@ -314,7 +315,8 @@
                                     <TextBox Grid.Column="1" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="30" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSaccSearchLength"></TextBox>
 
-                                    <Label Grid.Column="2" Grid.Row="1" Content="Min.Move:" HorizontalAlignment="Right"></Label>
+                                    <Label Grid.Column="2" Grid.Row="1" Content="Min.Move:" HorizontalAlignment="Right"
+                                           ToolTip="Length of mnimial move in first 3 frames"></Label>
                                     <TextBox Grid.Column="3" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="0.6" PreviewTextInput="DecimalValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSaccMinLength"
                              ></TextBox>
@@ -322,6 +324,11 @@
                                     <Label Grid.Column="4" Grid.Row="1" Content="Min.Inhibition:" HorizontalAlignment="Right"></Label>
                                     <TextBox Grid.Column="5" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="70" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSaccMinInhibition"
+                             ></TextBox>
+
+                                    <Label Grid.Column="6" Grid.Row="1" Content="Max.Amplitude:" HorizontalAlignment="Right"></Label>
+                                    <TextBox Grid.Column="7" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="14" PreviewTextInput="NumberValidationTextBox" 
+                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSaccMaxAmp"
                              ></TextBox>
 
 
@@ -363,7 +370,8 @@
                                     <TextBox Grid.Column="5" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="15" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBAntiSaccControlLength"></TextBox>
 
-                                    <Label Grid.Column="6" Grid.Row="0" Content="Contrl.Amp./:" HorizontalAlignment="Right"></Label>
+                                    <Label Grid.Column="6" Grid.Row="0" Content="Contrl.Amp./:" HorizontalAlignment="Right"
+                                           ToolTip="Control amplitude divider: ControlWindow(max-min)/x compared for displacement between 1 i 2 frame."></Label>
                                     <TextBox Grid.Column="7" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="2" PreviewTextInput="DecimalValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBAntiSaccControlAmpDivider"
                              ></TextBox>
@@ -374,7 +382,8 @@
                                     <TextBox Grid.Column="1" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="30" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBAntiSaccSearchLength"></TextBox>
 
-                                    <Label Grid.Column="2" Grid.Row="1" Content="Min. Move:" HorizontalAlignment="Right"></Label>
+                                    <Label Grid.Column="2" Grid.Row="1" Content="Min. Move:" HorizontalAlignment="Right"
+                                           ToolTip="Length of mnimial move in first 3 frames"></Label>
                                     <TextBox Grid.Column="3" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="0.6" PreviewTextInput="DecimalValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBAntiSaccMinLength"
                              ></TextBox>
@@ -384,9 +393,47 @@
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBAntiSaccMinInhibition"
                              ></TextBox>
 
+                                    <Label Grid.Column="6" Grid.Row="1" Content="Max.Amplitude:" HorizontalAlignment="Right"></Label>
+                                    <TextBox Grid.Column="7" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="40" PreviewTextInput="NumberValidationTextBox" 
+                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBAntiSaccMaxAmp"
+                             ></TextBox>
+
                                 </Grid>
                             </Expander>
                         </GroupBox>
+
+                        <GroupBox Header="Pursuit" Name="GBPursuit" HorizontalAlignment="Left" Margin="0,5,0,0" IsEnabled="False"
+                         VerticalAlignment="Top" Height="Auto" Width="Auto" >
+
+                            <Expander Name="ExpanderPursuit" Header="Move Approximation Settings" Expanded="Expander_Expanded" Collapsed="Expander_Collapsed">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="44"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="44"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="44"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="44"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+
+                                    </Grid.RowDefinitions>
+
+                                    <Label Grid.Column="0" Grid.Row="0" Content="Eye Latency:" HorizontalAlignment="Right"></Label>
+                                    <TextBox Grid.Column="1" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="0" PreviewTextInput="NumberValidationTextBox" 
+                                        HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBPursuitMinLatency">
+                                    </TextBox>
+                                    <Label ToolTip="Point approximation multiplied by number" Grid.Column="2" Grid.Row="0" Content="Multiply Approx.:" HorizontalAlignment="Right"></Label>
+                                    <TextBox Grid.Column="3" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="1.6" PreviewTextInput="DecimalValidationTextBox" 
+                                        HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBPursuitApproxMultiplication">
+                                    </TextBox>
+                                </Grid>
+                              </Expander>
+                          </GroupBox>
                     </StackPanel>
                     <GroupBox Header="Spot-Eye Settings" Name="GBPredictions" HorizontalAlignment="Right" Margin="0,10,0,0" IsEnabled="False"
                   VerticalAlignment="Top" Width="Auto" Grid.Row="1" Grid.Column="0">
@@ -409,7 +456,7 @@
                             </Grid.RowDefinitions>
 
                             <Label Grid.Column="0" Grid.Row="0" Content="Start Rec. Index:" HorizontalAlignment="Right"></Label>
-                            <TextBox Grid.Column="1" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="5850" PreviewTextInput="NumberValidationTextBox" 
+                            <TextBox Grid.Column="1" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="1" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBStartRec"
                              ></TextBox>
 
@@ -437,12 +484,12 @@
                             <TextBox Grid.Column="3" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="0.9" PreviewTextInput="DecimalValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSpotAmpProp"></TextBox>
 
-                            <Label Grid.Column="4" Grid.Row="1" Content="Eye Start Shift:" HorizontalAlignment="Right" Padding="0" Margin="0"></Label>
-                            <TextBox Grid.Column="5" Grid.Row="1" Width="44" Height="24" HorizontalAlignment="Left" Text="0" PreviewTextInput="NumberValidationTextBox" 
+                            <Label Grid.Column="4" Grid.Row="1" Content="Eye Start Shift:" HorizontalAlignment="Right" ></Label>
+                            <TextBox Grid.Column="5" Grid.Row="1" Width="44"  HorizontalAlignment="Left"  Text="0" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSaccadeStartShiftPeroid"></TextBox>
 
-                            <Label Grid.Column="6" Grid.Row="1" Content="Eye End Shift:" HorizontalAlignment="Right" Padding="0" Margin="0"></Label>
-                            <TextBox Grid.Column="7" Grid.Row="1" Width="44" Height="24" HorizontalAlignment="Left" Text="0" PreviewTextInput="NumberValidationTextBox" 
+                            <Label Grid.Column="6" Grid.Row="1" Content="Eye End Shift:" HorizontalAlignment="Right" ></Label>
+                            <TextBox Grid.Column="7" Grid.Row="1" Width="44"  HorizontalAlignment="Left" Text="0" PreviewTextInput="NumberValidationTextBox" 
                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBSaccadeEndShiftPeroid"></TextBox>
 
                             <Button Name="BtnCalculate" Grid.Column="5" Grid.Row="2" Grid.ColumnSpan="3"  Content="Refresh" 
