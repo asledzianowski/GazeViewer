@@ -103,7 +103,7 @@ namespace GazeDataViewer.Classes
 
             if (isFileRead)
             {
-                outputData.TimeDeltas = GetDeltaTimespansInt(outputData.Time);
+                outputData.TimeDeltas = GetDeltaTimespansDouble(outputData.Time);
                 return outputData;
             }
             else
@@ -113,17 +113,22 @@ namespace GazeDataViewer.Classes
         }
 
 
-        public static int[] GetDeltaTimespansInt(int[] timestamps)
+        public static double[] GetDeltaTimespansDouble(int[] timestamps)
         {
             var startTime = timestamps[0];
-            var stime = new List<int>();
+            var stime = new List<double>();
 
             for (int i = 0; i < timestamps.Length; i++)
             {
+                double timeSpanD = 0;
                 var timeSpan = timestamps[i] - startTime;
-                if (!stime.Contains(timeSpan))
+                if(timeSpan !=0)
                 {
-                    stime.Add(timeSpan);
+                    timeSpanD = Convert.ToDouble(timeSpan) / 100000D;
+                }
+                if (!stime.Contains(timeSpanD))
+                {
+                    stime.Add(timeSpanD);
                 }
             }
             return stime.ToArray();

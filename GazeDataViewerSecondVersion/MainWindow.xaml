@@ -68,7 +68,7 @@
             <Grid Grid.Row="1" Margin="10,0,10,0"  >
                 <d3:ChartPlotter Name="amplitudePlotter" Background="White"  >
                     <d3:ChartPlotter.MainHorizontalAxis>
-                        <d3:HorizontalIntegerAxis Name="timeAxis" />
+                        <d3:NumericAxis  Name="timeAxis"  />
                     </d3:ChartPlotter.MainHorizontalAxis>
                     <d3:ChartPlotter.MainVerticalAxis>
                         <d3:VerticalAxis Name="valueAxis"/>

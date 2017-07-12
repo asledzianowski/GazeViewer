@@ -283,9 +283,9 @@ namespace GazeDataViewer
             amplitudePlotter.Viewport.Visible = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
         }
 
-        private void ApplyEyeSpotSinusoids(int[] timeDeltas, double[] eyeCoords, double[] spotCoords)
+        private void ApplyEyeSpotSinusoids(double[] timeDeltas, double[] eyeCoords, double[] spotCoords)
         {
-            var timeAxisDataSource = new EnumerableDataSource<int>(timeDeltas);
+            var timeAxisDataSource = new EnumerableDataSource<double>(timeDeltas);
             timeAxisDataSource.SetXMapping(x => x);
 
             var eyeDataSource = new EnumerableDataSource<double>(eyeCoords);
@@ -311,15 +311,22 @@ namespace GazeDataViewer
             amplitudePlotter.Children.Add(line);
         }
 
-        private void ApplyPursutiApproximationSinusoid(int[] timeDeltas, double[] eyeCoords)
+        private void ApplyPursutiApproximationSinusoid(double[] timeDeltas, double[] eyeCoords)
         {
-            var timeAxisDataSource = new EnumerableDataSource<int>(timeDeltas);
+            var timeAxisDataSource = new EnumerableDataSource<double>(timeDeltas);
             timeAxisDataSource.SetXMapping(x => x);
 
+            timeAxis.LabelProvider.CustomFormatter = (tickInfo) =>
+            {
+                var output = (tickInfo.Tick /100).ToString();
+                return output;
+            };
+           
             var eyeDataSource = new EnumerableDataSource<double>(eyeCoords);
             eyeDataSource.SetYMapping(x => x);
 
             var eyeCompositeDataSource = new CompositeDataSource(timeAxisDataSource, eyeDataSource);
+          
 
             LineGraph line;
 

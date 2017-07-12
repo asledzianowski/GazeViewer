@@ -14,7 +14,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
     public class DataAnalyzer
     {
 
-        public static Dictionary<int, double> GetApproxEyeSinusoidForPursuitSearch(SpotGazeFileData fileData, CalcConfig calcConfig)
+        public static Dictionary<double, double> GetApproxEyeSinusoidForPursuitSearch(SpotGazeFileData fileData, CalcConfig calcConfig)
         {
             //var spotAvg = fileData.Spot.Average();
             //var spotAtAvg = new List<SpotMove>();
@@ -23,7 +23,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
 
             var data = fileData; // InputDataHelper.CutData(fileData, spotMoveStartIndex, fileData.Spot.Length - spotMoveStartIndex);
             var latency = calcConfig.PursuitMoveFinderConfig.MinLatency;
-            var approximations = new Dictionary<int, double>();
+            var approximations = new Dictionary<double, double>();
             for(int i = latency; i < data.Eye.Count(); i++)
             {
                 double? appVal = null;
@@ -51,12 +51,10 @@ namespace GazeDataViewer.Classes.SpotAndGain
                 
             }
 
-           
-
             return approximations;
         }
 
-        public static EyeMoveCalculation CountPursoitParameters(SpotGazeFileData data, Dictionary<int, double> approximations, CalcConfig calcConfig)
+        public static EyeMoveCalculation CountPursoitParameters(SpotGazeFileData data, Dictionary<double, double> approximations, CalcConfig calcConfig)
         {
             var spotOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(data.Spot.ToArray()).Sum();
             var eyeOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(data.Eye.ToArray()).Sum();
