@@ -1169,11 +1169,11 @@ namespace GazeDataViewer
                 newId = 0;
             }
 
-            else if(this.SaccadePositions == null)
+            else if(this.SaccadePositions == null || this.SaccadePositions.Count == 0)
             {
                 newId = this.AntiSaccadePositions.Last().Id + 1;
             }
-            else if(this.AntiSaccadePositions == null)
+            else if(this.AntiSaccadePositions == null || this.AntiSaccadePositions.Count == 0)
             {
                 newId = this.SaccadePositions.Last().Id + 1;
             }

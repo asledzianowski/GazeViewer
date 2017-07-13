@@ -143,7 +143,7 @@ namespace GazeDataViewer.Classes.DataAndLog
             if (addHeader)
             {
                 sb.Append("ID" + csvDelimiter);
-                sb.Append("FirstInSeq" + csvDelimiter);
+                sb.Append("FromFixationPoint" + csvDelimiter);
                 sb.Append("EyeMoveType" + csvDelimiter);
                 sb.Append("Latency" + csvDelimiter);
                 sb.Append("Duration" + csvDelimiter);
