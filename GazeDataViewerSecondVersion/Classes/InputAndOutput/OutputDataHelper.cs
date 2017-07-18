@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Data;
 
 namespace GazeDataViewer.Classes.DataAndLog
 {
@@ -154,10 +155,11 @@ namespace GazeDataViewer.Classes.DataAndLog
                 sb.Append("Gain" + Environment.NewLine);
             }
 
-            var outputItems = saccadeCalculations;
-            outputItems.AddRange(antiSaccadeCalculations);
+            var allOutputItems = new List<EyeMoveCalculation>();
+            allOutputItems.AddRange(saccadeCalculations);
+            allOutputItems.AddRange(antiSaccadeCalculations);
 
-            foreach (var outputItem in outputItems)
+            foreach (var outputItem in allOutputItems)
             {
                 sb.Append(outputItem.Id + csvDelimiter);
                 sb.Append(outputItem.IsFirstMove + csvDelimiter);
@@ -171,6 +173,15 @@ namespace GazeDataViewer.Classes.DataAndLog
                 sb.Append(outputItem.Gain + csvDelimiter);
                 sb.Append(Environment.NewLine);
             }
+
+
+            sb.Append(Environment.NewLine);
+            sb.Append(Environment.NewLine);
+            sb.Append("Found");
+            sb.Append(Environment.NewLine);
+            sb.Append($"Saccades: {saccadeCalculations.Count}");
+            sb.Append(Environment.NewLine);
+            sb.Append($"AntiSaccades: {antiSaccadeCalculations.Count}");
 
             sb.Append(Environment.NewLine);
             sb.Append(Environment.NewLine);
@@ -197,6 +208,8 @@ namespace GazeDataViewer.Classes.DataAndLog
             sb.Append(Environment.NewLine);
             sb.Append($"Min.Inhibition: {csvDelimiter} {config.SaccadeMoveFinderConfig.MinInhibition}");
             sb.Append(Environment.NewLine);
+            sb.Append($"Max.Amplitude: {csvDelimiter} {config.AntiSaccadeMoveFinderConfig.MaxAmp}");
+            sb.Append(Environment.NewLine);
             sb.Append(Environment.NewLine);
 
             sb.Append("AntiSacade Search Configuration");
@@ -215,8 +228,10 @@ namespace GazeDataViewer.Classes.DataAndLog
             sb.Append(Environment.NewLine);
             sb.Append($"Min.Inhibition: {csvDelimiter} {config.AntiSaccadeMoveFinderConfig.MinInhibition}");
             sb.Append(Environment.NewLine);
+            sb.Append($"Max.Amplitude: {csvDelimiter} {config.AntiSaccadeMoveFinderConfig.MaxAmp}");
+            sb.Append(Environment.NewLine);
 
-            if(filtersConfig.FilterByButterworth)
+            if (filtersConfig.FilterByButterworth)
             {
                 sb.Append(Environment.NewLine);
                 sb.Append($"Filter Butterworth Settings:");
@@ -243,6 +258,80 @@ namespace GazeDataViewer.Classes.DataAndLog
                 sb.Append($"Polynominal Order: {csvDelimiter} {filtersConfig.SavitzkyGolayPolynominalOrder}");
                 sb.Append(Environment.NewLine);
             }
+
+            if (saccadeCalculations?.Count > 0)
+            {
+                var saccStats = GetStatsForCollection(saccadeCalculations);
+                sb.Append(Environment.NewLine);
+                sb.Append("Saccade Statistics");
+                sb.Append(Environment.NewLine);
+                sb.Append(saccStats);
+            }
+
+            if (antiSaccadeCalculations?.Count > 0)
+            {
+                var antiSaccStats = GetStatsForCollection(antiSaccadeCalculations);
+                sb.Append(Environment.NewLine);
+                sb.Append("AntiSaccade Statistics");
+                sb.Append(Environment.NewLine);
+                sb.Append(antiSaccStats);
+            }
+            return sb.ToString();
+        }
+
+
+        public static string GetStatsForCollection(List<EyeMoveCalculation> results)
+        {
+            var sb = new StringBuilder();
+            sb.Append("Latency" + Environment.NewLine);
+            sb.Append("Minimum: " + results.Select(x => x.Latency).Min() + Environment.NewLine);
+            sb.Append("Maximum: " + results.Select(x => x.Latency).Max() + Environment.NewLine);
+            sb.Append("Mean: " + Math.Round(results.Select(x => x.Latency).Average(), 3) + Environment.NewLine);
+            sb.Append("StdDev: " + Math.Round(StandardDeviation(results.Select(x => x.Latency)), 3) + Environment.NewLine);
+            sb.Append(Environment.NewLine);
+
+            sb.Append("Duration" + Environment.NewLine);
+            sb.Append("Minimum: " + results.Select(x => x.Duration).Min() + Environment.NewLine);
+            sb.Append("Maximum: " + results.Select(x => x.Duration).Max() + Environment.NewLine);
+            sb.Append("Mean: " + Math.Round(results.Select(x => x.Duration).Average(), 3) + Environment.NewLine);
+            sb.Append("StdDev: " + Math.Round(StandardDeviation(results.Select(x => x.Duration)), 3) + Environment.NewLine);
+            sb.Append(Environment.NewLine);
+
+            sb.Append("Distance" + Environment.NewLine);
+            sb.Append("Minimum: " + results.Select(x => x.Distance).Min() + Environment.NewLine);
+            sb.Append("Maximum: " + results.Select(x => x.Distance).Max() + Environment.NewLine);
+            sb.Append("Mean: " + Math.Round(results.Select(x => x.Distance).Average(), 3) + Environment.NewLine);
+            sb.Append("StdDev: " + Math.Round(StandardDeviation(results.Select(x => x.Distance)), 3) + Environment.NewLine);
+            sb.Append(Environment.NewLine);
+
+            sb.Append("Amplitude" + Environment.NewLine);
+            sb.Append("Minimum: " + results.Select(x => x.Amplitude).Min() + Environment.NewLine);
+            sb.Append("Maximum: " + results.Select(x => x.Amplitude).Max() + Environment.NewLine);
+            sb.Append("Mean: " + Math.Round(results.Select(x => x.Amplitude).Average(), 3) + Environment.NewLine);
+            sb.Append("StdDev: " + Math.Round(StandardDeviation(results.Select(x => x.Amplitude)), 3) + Environment.NewLine);
+            sb.Append(Environment.NewLine);
+
+            sb.Append("Averge Velocity" + Environment.NewLine);
+            sb.Append("Minimum: " + results.Select(x => x.AvgVelocity).Min() + Environment.NewLine);
+            sb.Append("Maximum: " + results.Select(x => x.AvgVelocity).Max() + Environment.NewLine);
+            sb.Append("Mean: " + Math.Round(results.Select(x => x.AvgVelocity).Average(), 3) + Environment.NewLine);
+            sb.Append("StdDev: " + Math.Round(StandardDeviation(results.Select(x => x.AvgVelocity)), 3) + Environment.NewLine);
+            sb.Append(Environment.NewLine);
+
+            sb.Append("Maximum Velocity" + Environment.NewLine);
+            sb.Append("Minimum: " + results.Select(x => x.MaxVelocity).Min() + Environment.NewLine);
+            sb.Append("Maximum: " + results.Select(x => x.MaxVelocity).Max() + Environment.NewLine);
+            sb.Append("Mean: " + Math.Round(results.Select(x => x.MaxVelocity).Average(), 3) + Environment.NewLine);
+            sb.Append("StdDev: " + Math.Round(StandardDeviation(results.Select(x => x.MaxVelocity)), 3) + Environment.NewLine);
+            sb.Append(Environment.NewLine);
+
+            sb.Append("Gain" + Environment.NewLine);
+            sb.Append("Minimum: " + results.Select(x => x.Gain).Min() + Environment.NewLine);
+            sb.Append("Maximum: " + results.Select(x => x.Gain).Max() + Environment.NewLine);
+            sb.Append("Mean: " + Math.Round(results.Select(x => x.Gain).Average(), 3) + Environment.NewLine);
+            sb.Append("StdDev: " + Math.Round(StandardDeviation(results.Select(x => x.Gain)), 3) + Environment.NewLine);
+            sb.Append(Environment.NewLine);
+
 
             return sb.ToString();
         }
@@ -276,7 +365,14 @@ namespace GazeDataViewer.Classes.DataAndLog
 
 
         }
-    
+
+
+        public static double StandardDeviation(IEnumerable<double> values)
+        {
+            double avg = values.Average();
+            return Math.Sqrt(values.Average(v => Math.Pow(v - avg, 2)));
+        }
+
     }
     
 }
