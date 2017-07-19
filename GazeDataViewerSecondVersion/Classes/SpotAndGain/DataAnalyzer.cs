@@ -85,7 +85,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
        
             var eyeShiftPeriod = calcConfig.EyeShiftPeriod;
             var spotShiftPeriod = calcConfig.SpotShiftPeriod;
-            var eyeAmpProp = calcConfig.EyeAmpProp;
+            //var eyeAmpProp = calcConfig.EyeAmpProp;
             var spotAmpProp = calcConfig.SpotAmpProp;
 
             // dane od recStart
@@ -107,7 +107,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
             //# wylapujemy zmiany amplitudy sygnalu, dla oczu wieksza tolerancja z powodu mniejszej przewidywalnosci
             //czy różnica amplitud pomiędzy przesuniętymi odcinkami jest większa niż średnia amplitudy spot ('true')
             // z okna: amplituda przesuniete minus amplituda oryginalne
-            var rightEyeOverMeanSpotAmplitudeIndexes = GetIndexesOverAmplitude(shiftedEyeCoords, eyeCoords, meanSpotAmplitude, eyeAmpProp);
+            //var rightEyeOverMeanSpotAmplitudeIndexes = GetIndexesOverAmplitude(shiftedEyeCoords, eyeCoords, meanSpotAmplitude, eyeAmpProp);
             var spotAmplitudeOverMeanIndexes = GetIndexesOverAmplitude(shiftedSpotCoords, spotCoords, meanSpotAmplitude, spotAmpProp);
 
             var lowestEyeOverAmpIndxesForSpotIndexes = new List<int>();
@@ -142,7 +142,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
 
             // zawezamy znalezione zmiany amplitudy dla oczu tak aby odpowiadaly w miare pewnym zmianom amplitudy markera
             // tylko amplitudy oka o indeksie równym najniżeszmu indeksowi zredukowanych punktów amplitudy oka   
-            var earliestEyeOverAmpForSpotOverAmpIndexes = NarrowList(rightEyeOverMeanSpotAmplitudeIndexes, lowestEyeOverAmpIndxesForSpotIndexes);
+            //var earliestEyeOverAmpForSpotOverAmpIndexes = NarrowList(rightEyeOverMeanSpotAmplitudeIndexes, lowestEyeOverAmpIndxesForSpotIndexes);
            
             var results = new ResultData();
             results = new ResultData

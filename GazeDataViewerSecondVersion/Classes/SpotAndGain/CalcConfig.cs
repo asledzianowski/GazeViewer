@@ -16,7 +16,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
         public int SpotShiftPeriod { get; set; } = -1;
         public int EyeStartShiftPeroid { get; set; } = 0;
         public int EyeEndShiftPeroid { get; set; } = 0;
-        public double EyeAmpProp { get; set; } = 0.0;
+        //public double EyeAmpProp { get; set; } = 0.0;
         public double SpotAmpProp { get; set; } = 0.0;
 
         public EyeMoveFinderConfig PursuitMoveFinderConfig { get; set; }

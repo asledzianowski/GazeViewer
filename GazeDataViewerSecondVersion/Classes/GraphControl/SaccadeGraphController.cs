@@ -62,7 +62,7 @@ namespace GazeDataViewer.Classes.GraphControl
 
                 var marker = new MarkerPointsGraph(saccadeStartCompositeDataSource);
                 var textMarker = new CenteredTextMarker();
-                textMarker.Text = $"{text.First()}:S#{IDs[i]}";
+                textMarker.Text = $"{text}:S#{IDs[i]}";
                 marker.Marker = textMarker;
                 marker.Name = $"Sacc{text}Label";
                 if (!isVisible)

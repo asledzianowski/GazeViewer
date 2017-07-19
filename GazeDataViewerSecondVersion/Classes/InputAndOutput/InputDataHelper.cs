@@ -1,4 +1,5 @@
 ﻿using GazeDataViewer.Classes.Enums;
+using GazeDataViewer.Classes.EnumsAndStats;
 using GazeDataViewer.Classes.SpotAndGain;
 using System;
 using System.Collections.Generic;
@@ -124,7 +125,7 @@ namespace GazeDataViewer.Classes
                 var timeSpan = timestamps[i] - startTime;
                 if(timeSpan !=0)
                 {
-                    timeSpanD = Convert.ToDouble(timeSpan) / 100000D;
+                    timeSpanD = Convert.ToDouble(timeSpan) / Consts.GraphXScaleFactor;
                 }
                 if (!stime.Contains(timeSpanD))
                 {
@@ -132,6 +133,12 @@ namespace GazeDataViewer.Classes
                 }
             }
             return stime.ToArray();
+        }
+
+        public static double ScaleTimeByFactor(double time, int roundBy)
+        {
+            var output = Math.Round(time / Consts.TimeScaleFactor, roundBy);
+            return output;
         }
 
         public static SpotGazeFileData CutData(SpotGazeFileData resultData, int skipCount, int takeCount)

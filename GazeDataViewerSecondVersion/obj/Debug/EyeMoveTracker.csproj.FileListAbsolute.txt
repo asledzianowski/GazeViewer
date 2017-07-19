@@ -7,7 +7,6 @@ D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersi
 D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\bin\Debug\DynamicDataDisplay.Markers.dll
 D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\bin\Debug\DynamicDataDisplay.Markers2.dll
 D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\bin\Debug\Parser.dll
-D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\obj\Debug\EyeMoveTracker.csprojResolveAssemblyReference.cache
 D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\obj\Debug\MainWindow.g.cs
 D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\obj\Debug\App.g.cs
 D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\obj\Debug\GazeDataViewer_MarkupCompile.cache

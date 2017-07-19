@@ -61,7 +61,7 @@ namespace GazeDataViewer.Classes.GraphControl
 
                 var marker = new MarkerPointsGraph(saccadeStartCompositeDataSource);
                 var textMarker = new CenteredTextMarker();
-                textMarker.Text = $"{text.First()}:A#{IDs[i]}";
+                textMarker.Text = $"{text}:A#{IDs[i]}";
                 marker.Marker = textMarker;
                 marker.Name = $"AntiSacc{text}Label";
                 if (!isVisible)

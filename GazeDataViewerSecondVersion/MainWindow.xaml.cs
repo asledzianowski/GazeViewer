@@ -31,6 +31,7 @@ using GazeDataViewer.Classes.GraphControl;
 using GazeDataViewer.Classes.Enums;
 using GazeDataViewer.Classes.DataAndLog;
 using GazeDataViewer.Classes.EyeMoveSearch;
+using GazeDataViewer.Classes.EnumsAndStats;
 
 namespace GazeDataViewer
 {
@@ -221,7 +222,7 @@ namespace GazeDataViewer
 
             var saccadeParamsCalcuator = new SaccadeParamsCalcuator(fullData.EyeCoords, fullData.SpotCoords, calcConfig.DistanceFromScreen, calcConfig.TrackerFrequency);
 
-            for (int i = 0; i < spotOverMeanPoints.Count; i++)
+            for (int i = 1; i < spotOverMeanPoints.Count; i++)
             {
                 var spotOverMeanIndex = spotOverMeanPoints[i];
                 var currentSpotShiftIndex = SaccadeDataHelper.CountSpotShiftIndex(spotOverMeanIndex, fullData.ShiftPeriod);
@@ -340,7 +341,7 @@ namespace GazeDataViewer
         }
         private void ApplySpotPointMarkers(ResultData spotEyePoints)
         {
-            SpotMovePositions = spotEyePoints.SpotMoves;
+            SpotMovePositions = spotEyePoints.SpotMoves.Skip(4).ToList();
             LoadComboAddEMSpot();
 
             var spotStartDataSource = new EnumerableDataSource<SpotMove>(SpotMovePositions);
@@ -379,8 +380,8 @@ namespace GazeDataViewer
             SaccadeGraphController.ApplySaccadeTextMarkers(amplitudePlotter, CBShowLabels.IsChecked.GetValueOrDefault(), 
                 saccades.Select(x => x.EyeStartTime).ToList(), saccades.Select(x => x.EyeStartCoord).ToList(),
                 saccades.Select(x => x.Id).ToList(), "Start");
-            SaccadeGraphController.ApplySaccadeTextMarkers(amplitudePlotter, CBShowLabels.IsChecked.GetValueOrDefault(), saccades.Select(x => x.EyeEndTime).ToList(), saccades.Select(x => x.EyeEndCoord).ToList(),
-                saccades.Select(x => x.Id).ToList(), "End");
+            //SaccadeGraphController.ApplySaccadeTextMarkers(amplitudePlotter, CBShowLabels.IsChecked.GetValueOrDefault(), saccades.Select(x => x.EyeEndTime).ToList(), saccades.Select(x => x.EyeEndCoord).ToList(),
+            //    saccades.Select(x => x.Id).ToList(), "End");
         }
 
         private void ApplyAntiSaccadeMarkersAndControls(List<EyeMove> antiSaccades)
@@ -390,8 +391,8 @@ namespace GazeDataViewer
             AntiSaccadeGraphController.ApplyAntiSaccadeTextMarkers(amplitudePlotter, CBShowLabels.IsChecked.GetValueOrDefault(),
                 antiSaccades.Select(x => x.EyeStartTime).ToList(), antiSaccades.Select(x => x.EyeStartCoord).ToList(),
                 antiSaccades.Select(x => x.Id).ToList(), "Start");
-            AntiSaccadeGraphController.ApplyAntiSaccadeTextMarkers(amplitudePlotter, CBShowLabels.IsChecked.GetValueOrDefault(), antiSaccades.Select(x => x.EyeEndTime).ToList(), antiSaccades.Select(x => x.EyeEndCoord).ToList(),
-                antiSaccades.Select(x => x.Id).ToList(), "End");
+            //AntiSaccadeGraphController.ApplyAntiSaccadeTextMarkers(amplitudePlotter, CBShowLabels.IsChecked.GetValueOrDefault(), antiSaccades.Select(x => x.EyeEndTime).ToList(), antiSaccades.Select(x => x.EyeEndCoord).ToList(),
+            //    antiSaccades.Select(x => x.Id).ToList(), "End");
 
         }
 
@@ -450,8 +451,10 @@ namespace GazeDataViewer
             });
             foreach (var saccade in saccades)
             {
-                var panel = GetSaccadeControl(saccade, EyeMoveTypes.Saccade);
-                SaccadeControlsPanel.Children.Add(panel);
+                var timePanel = GetTimeLabelPanel(saccade);
+                var editPanel = GetSaccadeControl(saccade, EyeMoveTypes.Saccade);
+                SaccadeControlsPanel.Children.Add(timePanel);
+                SaccadeControlsPanel.Children.Add(editPanel);
             }
 
             SaccadeControlsPanel.Children.Add(new Label
@@ -462,9 +465,32 @@ namespace GazeDataViewer
             });
             foreach (var antiSaccade in antiSaccades)
             {
-                var panel = GetSaccadeControl(antiSaccade, EyeMoveTypes.AntiSaccade);
-                SaccadeControlsPanel.Children.Add(panel);
+                var timePanel = GetTimeLabelPanel(antiSaccade);
+                var editPanel = GetSaccadeControl(antiSaccade, EyeMoveTypes.AntiSaccade);
+                SaccadeControlsPanel.Children.Add(timePanel);
+                SaccadeControlsPanel.Children.Add(editPanel);
             }
+        }
+
+
+        private StackPanel GetTimeLabelPanel(EyeMove saccade)
+        {
+            var timeLabelPanel = new StackPanel();
+            timeLabelPanel.Orientation = Orientation.Horizontal;
+           
+            timeLabelPanel.Margin = new Thickness(0);
+            timeLabelPanel.Height = 27;
+            timeLabelPanel.HorizontalAlignment = HorizontalAlignment.Right;
+
+            var timeLabel = new Label();
+            timeLabel.FontSize = 11;
+            timeLabel.Padding = new Thickness(0);
+            timeLabel.Margin = new Thickness(0);
+            timeLabel.Content = $"Time Start: {InputDataHelper.ScaleTimeByFactor(saccade.EyeStartTime, 3)} {Environment.NewLine}End: {InputDataHelper.ScaleTimeByFactor(saccade.EyeEndTime, 4)}";
+            
+            timeLabelPanel.Children.Add(timeLabel);
+
+            return timeLabelPanel;
         }
 
         private StackPanel GetSaccadeControl(EyeMove saccade, EyeMoveTypes eyeMoveTypeTag)
@@ -472,11 +498,12 @@ namespace GazeDataViewer
             var itemPanel = new StackPanel();
             itemPanel.Orientation = Orientation.Horizontal;
             itemPanel.HorizontalAlignment = HorizontalAlignment.Right;
-            itemPanel.Margin = new Thickness(0, 10, 0, 0);
+            itemPanel.Margin = new Thickness(0, 0, 0, 0);
             itemPanel.Tag = saccade.Id.ToString();
             itemPanel.Name = eyeMoveTypeTag.ToString();
 
             var saccLabel = new Label();
+            saccLabel.Padding = new Thickness(0, 10, 5, 0);
             saccLabel.Content = $"#{saccade.Id}";
 
             var controlPadding = new Thickness(2, 5, 2, 5);
@@ -563,7 +590,7 @@ namespace GazeDataViewer
 
         private void SetCalcConfigGUI(CalcConfig calcConfig)
         {
-            TBEyeAmpProp.Text = calcConfig.EyeAmpProp.ToString();
+            //TBEyeAmpProp.Text = calcConfig.EyeAmpProp.ToString();
             TBSaccadeEndShiftPeroid.Text = calcConfig.EyeEndShiftPeroid.ToString();
             TBSaccadeStartShiftPeroid.Text = calcConfig.EyeStartShiftPeroid.ToString();
             TBEyeShiftPeroid.Text = calcConfig.EyeShiftPeriod.ToString();
@@ -578,7 +605,6 @@ namespace GazeDataViewer
             CBFilterButterworth.IsChecked = filtersConfig.FilterByButterworth;
             CBFilterSavGolay.IsChecked = filtersConfig.FilterBySavitzkyGolay;
             TBButterWorthFrequency.Text = filtersConfig.ButterworthFrequency.ToString();
-            ComboFilterTypeButterworth.SelectedIndex = (int)filtersConfig.ButterworthPassType;
             TBButterWorthResonance.Text = filtersConfig.ButterworthResonance.ToString();
             TBButterWorthSampleRate.Text = filtersConfig.ButterworthSampleRate.ToString();
 
@@ -693,15 +719,15 @@ namespace GazeDataViewer
 
            
 
-            var isAmpProp = double.TryParse(TBEyeAmpProp.Text.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out ampProp);
-            if (isAmpProp)
-            {
-                calcConfig.EyeAmpProp = ampProp;
-            }
-            else
-            {
-                MessageBox.Show($"Wrong value of 'Eye Amp Prop'. Should be double (decimal).");
-            }
+            //var isAmpProp = double.TryParse(TBEyeAmpProp.Text.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out ampProp);
+            //if (isAmpProp)
+            //{
+            //    calcConfig.EyeAmpProp = ampProp;
+            //}
+            //else
+            //{
+            //    MessageBox.Show($"Wrong value of 'Eye Amp Prop'. Should be double (decimal).");
+            //}
 
             var isSpotProp = double.TryParse(TBSpotAmpProp.Text.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out spotProp);
             if (isSpotProp)
@@ -753,7 +779,6 @@ namespace GazeDataViewer
 
             double butterworthFrequency;
             int butterworthSampleRate;
-            PassType butterworthPassType;
             double butterworthResonance;
 
             int savitzkyGolayNumberOfPoints;
@@ -782,16 +807,7 @@ namespace GazeDataViewer
                 MessageBox.Show($"Wrong value of 'Butter Worth Frequency'. Should be {filtersConfig.ButterworthSampleRate.GetType().Name}.");
             }
 
-            var isButterworthPassType = Enum.TryParse(ComboFilterTypeButterworth.SelectedValue.ToString(), out butterworthPassType);
-            if (isButterworthPassType)
-            {
-                filtersConfig.ButterworthPassType = butterworthPassType;
-            }
-            else
-            {
-                MessageBox.Show($"Wrong value of 'Butter Pass Type'. Should be {filtersConfig.ButterworthPassType.GetType().Name}.");
-            }
-
+           
             var isButterworthResonance = double.TryParse(TBButterWorthResonance.Text.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out butterworthResonance);
             if (isButterworthResonance)
             {
@@ -832,7 +848,11 @@ namespace GazeDataViewer
             {
                 MessageBox.Show($"Wrong value of 'Polynominal Order  '. Should be {filtersConfig.SavitzkyGolayPolynominalOrder.GetType().Name}.");
             }
-           
+
+
+            // The only option allowed
+            filtersConfig.ButterworthPassType = PassType.Lowpass;
+
             return filtersConfig;
         }
 
@@ -1152,7 +1172,7 @@ namespace GazeDataViewer
 
         private void BtnAddEyeMove_Click(object sender, RoutedEventArgs e)
         {
-            var spotStartTimeStamp = (double)ComboAddEMSpot.SelectedItem;
+            var spotStartTimeStamp = (double)ComboAddEMSpot.SelectedValue;
             var spot = SpotMovePositions.FirstOrDefault(x => x.SpotStartTimeStamp == spotStartTimeStamp);
             var spotIndex = SpotMovePositions.IndexOf(spot);
             var spotStartIndex = spot.SpotStartIndex;
@@ -1283,13 +1303,15 @@ namespace GazeDataViewer
        
         private void LoadComboAddEMSpot()
         {
-            List<double> data = new List<double>();
+            var data = new List<KeyValuePair<double, double>>();
 
             foreach (var spotMove in this.SpotMovePositions)
             {
-                data.Add(spotMove.SpotStartTimeStamp);
+                data.Add( new KeyValuePair<double, double>(spotMove.SpotStartTimeStamp, InputDataHelper.ScaleTimeByFactor(spotMove.SpotStartTimeDelta, 2)));
             }
 
+            ComboAddEMSpot.SelectedValuePath = "Key";
+            ComboAddEMSpot.DisplayMemberPath = "Value";
             ComboAddEMSpot.ItemsSource = data;
             ComboAddEMSpot.SelectedIndex = 0;
         }
