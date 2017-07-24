@@ -59,33 +59,39 @@ namespace GazeDataViewer.Classes.DataAndLog
 
             foreach (var result in results)
             {
-                sb.Append($"{result.EyeMoveType} Id: {result.Id}");
+                sb.Append($"{result.EyeMove.EyeMoveType} Id: {result.EyeMove.Id}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"First in Spot Sequence: {result.IsFirstMove}");
+                sb.Append($"First in Spot Sequence: {result.EyeMove.IsFirstMove}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Spot Start Index: {result.SpotStartIndex}");
+                sb.Append($"Spot Start Index: {result.EyeMove.SpotMove.SpotStartIndex}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Spot Start X: {currentSpotEyePointsForSaccades.SpotCoords[result.SpotStartIndex]}");
+                sb.Append($"Spot Start X: {currentSpotEyePointsForSaccades.SpotCoords[result.EyeMove.SpotMove.SpotStartIndex]}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Spot Start Time: {currentSpotEyePointsForSaccades.TimeStamps[result.SpotStartIndex]}");
+                sb.Append($"Spot Start Time: {currentSpotEyePointsForSaccades.TimeStamps[result.EyeMove.SpotMove.SpotStartIndex]}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Spot End Index: {result.SpotEndIndex}");
+                sb.Append($"Spot End Index: {result.EyeMove.SpotMove.SpotEndIndex}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Spot End X: {currentSpotEyePointsForSaccades.SpotCoords[result.SpotEndIndex]}");
+                sb.Append($"Spot End X: {currentSpotEyePointsForSaccades.SpotCoords[result.EyeMove.SpotMove.SpotEndIndex]}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Spot End Time: {currentSpotEyePointsForSaccades.TimeStamps[result.SpotEndIndex]}");
+                sb.Append($"Spot End Time: {currentSpotEyePointsForSaccades.TimeStamps[result.EyeMove.SpotMove.SpotEndIndex]}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Eye Start Index: {result.EyeStartIndex}");
+                sb.Append($"Eye Start Index: {result.EyeMove.EyeStartIndex}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Eye Start X: {currentSpotEyePointsForSaccades.EyeCoords[result.EyeStartIndex]}");
+                sb.Append($"Eye Start X: {currentSpotEyePointsForSaccades.EyeCoords[result.EyeMove.EyeStartIndex]}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Eye Start Time: {currentSpotEyePointsForSaccades.TimeStamps[result.EyeStartIndex]}");
+                sb.Append($"Eye Start Time: {currentSpotEyePointsForSaccades.TimeStamps[result.EyeMove.EyeStartIndex]}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Eye End Index: {result.EyeEndIndex}");
+                sb.Append($"Eye End Index: {result.EyeMove.EyeEndIndex}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Eye End X: {currentSpotEyePointsForSaccades.EyeCoords[result.EyeEndIndex]}");
+                sb.Append($"Eye End X: {currentSpotEyePointsForSaccades.EyeCoords[result.EyeMove.EyeEndIndex]}");
                 sb.Append(Environment.NewLine);
-                sb.Append($"Eye End Time: {currentSpotEyePointsForSaccades.TimeStamps[result.EyeEndIndex]}");
+                sb.Append($"Eye End Time: {currentSpotEyePointsForSaccades.TimeStamps[result.EyeMove.EyeEndIndex]}");
+                sb.Append(Environment.NewLine);
+                sb.Append(Environment.NewLine);
+                sb.Append($"Control Amp/ Test Value: {result.EyeMove.ControlAmpTestValue}");
+                sb.Append(Environment.NewLine);
+                sb.Append($"Min.Length Test Value: {result.EyeMove.MinLengthTestValue}");
+                sb.Append(Environment.NewLine);
                 sb.Append(Environment.NewLine);
                 sb.Append($"Latency Frame Count: {result.LatencyFrameCount}");
                 sb.Append(Environment.NewLine);
@@ -111,7 +117,7 @@ namespace GazeDataViewer.Classes.DataAndLog
 
                 sb.Append("Y Values:");
                 sb.Append(Environment.NewLine);
-                for (int i = result.EyeStartIndex; i < result.EyeStartIndex + result.DurationFrameCount; i++)
+                for (int i = result.EyeMove.EyeStartIndex; i < result.EyeMove.EyeStartIndex + result.DurationFrameCount; i++)
                 {
                     sb.Append($"Index:{i} - Value: {currentSpotEyePointsForSaccades.EyeCoords[i]}");
                     sb.Append(Environment.NewLine);
@@ -120,7 +126,7 @@ namespace GazeDataViewer.Classes.DataAndLog
                 sb.Append(Environment.NewLine);
                 sb.Append("X Values:");
                 sb.Append(Environment.NewLine);
-                for (int i = result.EyeStartIndex; i < result.EyeStartIndex + result.DurationFrameCount; i++)
+                for (int i = result.EyeMove.EyeStartIndex; i < result.EyeMove.EyeStartIndex + result.DurationFrameCount; i++)
                 {
                     sb.Append($"Index:{i} - Time: {currentSpotEyePointsForSaccades.TimeDeltas[i]}");
                     sb.Append(Environment.NewLine);
@@ -161,9 +167,9 @@ namespace GazeDataViewer.Classes.DataAndLog
 
             foreach (var outputItem in allOutputItems)
             {
-                sb.Append(outputItem.Id + csvDelimiter);
-                sb.Append(outputItem.IsFirstMove + csvDelimiter);
-                sb.Append(outputItem.EyeMoveType + csvDelimiter);
+                sb.Append(outputItem.EyeMove.Id + csvDelimiter);
+                sb.Append(outputItem.EyeMove.IsFirstMove + csvDelimiter);
+                sb.Append(outputItem.EyeMove.EyeMoveType + csvDelimiter);
                 sb.Append(outputItem.Latency + csvDelimiter);
                 sb.Append(outputItem.Duration + csvDelimiter);
                 sb.Append(outputItem.Distance + csvDelimiter);

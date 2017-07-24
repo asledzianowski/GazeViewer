@@ -17,6 +17,9 @@ namespace GazeDataViewer.Classes.Saccade
         public int EyeStartIndex { get; set; }
         public double EyeStartTime { get; set; }
         public double EyeStartCoord { get; set; }
+        public double ControlAmpValue { get; set; }
+        public double ControlAmpTestValue { get; set; }
+        public double MinLengthTestValue { get; set; }
 
         public bool IsEndFound { get; set; }
         public int EyeEndIndex { get; set; }
@@ -26,6 +29,7 @@ namespace GazeDataViewer.Classes.Saccade
         public EyeMoveTypes EyeMoveType { get; set; }
         public SpotMove SpotMove { get; set; }
         public bool IsFirstMove { get; set; }
+        
 
-}
+    }
 }

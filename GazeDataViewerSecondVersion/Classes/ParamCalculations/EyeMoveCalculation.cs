@@ -9,15 +9,10 @@ namespace GazeDataViewer.Classes.Saccade
 {
     public class EyeMoveCalculation
     {
-        public int Id { get; set; }
-        public bool IsFirstMove { get; set; }
-        public EyeMoveTypes EyeMoveType { get; set; }
-        public int SpotStartIndex { get; set; }
-        public int SpotEndIndex { get; set; }
-        public int EyeStartIndex { get; set; }
-        public int EyeEndIndex { get; set; }
-        public int DurationFrameCount { get; set; }
-        public int LatencyFrameCount { get; set; }
+        public EyeMove EyeMove { get; set; }
+
+        public double LatencyFrameCount { get; set; }
+        public double DurationFrameCount { get; set; }
 
         public double Duration { get; set; }
         public double Latency { get; set; }

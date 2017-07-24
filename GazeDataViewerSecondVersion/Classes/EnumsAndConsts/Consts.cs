@@ -8,7 +8,7 @@ namespace GazeDataViewer.Classes.EnumsAndStats
 {
     public static class Consts
     {
-        public const double GraphXScaleFactor  = 100000D;
+        public const double GraphXScaleFactor  = 1000D;
         public const double TimeScaleFactor = 100D;
     }
 }

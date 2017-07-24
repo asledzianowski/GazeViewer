@@ -38,8 +38,11 @@ namespace GazeDataViewer.Classes.Saccade
 
            
             bool isStartFound = false;
+            double controlAmpTestValue = -1;
+            double minLengthTestValue = -1;
             EyeMoveSearchToolBox.FindStartByMoveDirection(ref saccadeStartFindCoords, ref eyeStartIndex,
-                spotStartOscilationXPosition, controlMinCord, controlMaxCord, isRising, meanControlAmplitude, minLenght, ref isStartFound);
+                spotStartOscilationXPosition, controlMinCord, controlMaxCord, isRising, meanControlAmplitude, minLenght, 
+                ref isStartFound, ref controlAmpTestValue, ref minLengthTestValue);
 
             bool isEndFound = false;
             //var endIndex = GetEndByDirectionChange(saccadeStartFindCoords, eyeStartIndex, isRising, ref isEndFound);
@@ -69,6 +72,8 @@ namespace GazeDataViewer.Classes.Saccade
                     EyeStartIndex = saccadeStartIndex,
                     EyeStartTime = results.TimeDeltas[saccadeStartIndex],
                     EyeStartCoord = results.EyeCoords[saccadeStartIndex],
+                    ControlAmpTestValue = controlAmpTestValue,
+                    MinLengthTestValue = minLengthTestValue,
 
                     IsEndFound = isEndFound,
                     EyeEndIndex = saccadeEndIndex,

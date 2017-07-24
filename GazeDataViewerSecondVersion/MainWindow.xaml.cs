@@ -161,15 +161,23 @@ namespace GazeDataViewer
                 ApplyEyeSpotSinusoids(fileData.TimeDeltas, fileData.Eye, fileData.Spot);
 
                 //move swith timestamp 9231000 / initial index 5850
-                var saccadesStartTime = fileData.Time.FirstOrDefault(x => x >= 9231000);
+                var pursuitEndTime = fileData.Time.FirstOrDefault(x => x >= 9231000);
+                if (pursuitEndTime == 0)
+                {
+                    pursuitEndTime = fileData.Time.LastOrDefault();
+                }
+
+                //Calibration end timestamp 10149000
+                var saccadesStartTime = fileData.Time.FirstOrDefault(x => x >= 10149000);
                 if(saccadesStartTime == 0)
                 {
                     saccadesStartTime = fileData.Time.LastOrDefault();
                 }
 
+                var pursuitEndIndex = Array.IndexOf(fileData.Time, pursuitEndTime);
                 var saccadesStartIndex = Array.IndexOf(fileData.Time, saccadesStartTime); //1
 
-                var pursuitMovesBlock = InputDataHelper.CutData(fileData, 0, saccadesStartIndex - 1);
+                var pursuitMovesBlock = InputDataHelper.CutData(fileData, 0, pursuitEndIndex - 1);
                 var saccadesMovesBlock = InputDataHelper.CutData(fileData, saccadesStartIndex, fileData.Spot.Length - saccadesStartIndex);
 
                 if (pursuitMovesBlock.Spot.Length > 0)
@@ -222,17 +230,18 @@ namespace GazeDataViewer
 
             var saccadeParamsCalcuator = new SaccadeParamsCalcuator(fullData.EyeCoords, fullData.SpotCoords, calcConfig.DistanceFromScreen, calcConfig.TrackerFrequency);
 
-            for (int i = 1; i < spotOverMeanPoints.Count; i++)
+            for (int i = 0; i < spotOverMeanPoints.Count; i++)
             {
                 var spotOverMeanIndex = spotOverMeanPoints[i];
                 var currentSpotShiftIndex = SaccadeDataHelper.CountSpotShiftIndex(spotOverMeanIndex, fullData.ShiftPeriod);
-                if (currentSpotShiftIndex < spotOverMeanPoints.Last())
+                var lastIndex = Array.IndexOf(fullData.SpotCoords, fullData.SpotCoords.Last());
+                if (currentSpotShiftIndex < fullData.SpotCoords.Count())
                 {
                     EyeMove eyeMove = null;
 
                     if (moveType == EyeMoveTypes.Saccade)
                     {
-                        eyeMove = finder.TryFindEyeMove(i, spotOverMeanIndex, currentSpotShiftIndex, fullData);
+                        eyeMove = finder.TryFindEyeMove(i + 1, spotOverMeanIndex, currentSpotShiftIndex, fullData);
                         if (eyeMove != null)
                         {
                             var saccParams = saccadeParamsCalcuator.CalculateSaccadeParams(eyeMove, eyeMove.EyeMoveType);
@@ -244,7 +253,7 @@ namespace GazeDataViewer
                     }
                     else
                     {
-                        eyeMove = finder.TryFindEyeMove(i, spotOverMeanIndex, currentSpotShiftIndex, fullData);
+                        eyeMove = finder.TryFindEyeMove(i + 1, spotOverMeanIndex, currentSpotShiftIndex, fullData);
                         if (eyeMove != null)
                         {
                             var antiSaccParams = saccadeParamsCalcuator.CalculateSaccadeParams(eyeMove, eyeMove.EyeMoveType);
@@ -341,7 +350,7 @@ namespace GazeDataViewer
         }
         private void ApplySpotPointMarkers(ResultData spotEyePoints)
         {
-            SpotMovePositions = spotEyePoints.SpotMoves.Skip(4).ToList();
+            SpotMovePositions = spotEyePoints.SpotMoves;
             LoadComboAddEMSpot();
 
             var spotStartDataSource = new EnumerableDataSource<SpotMove>(SpotMovePositions);
@@ -479,14 +488,14 @@ namespace GazeDataViewer
             timeLabelPanel.Orientation = Orientation.Horizontal;
            
             timeLabelPanel.Margin = new Thickness(0);
-            timeLabelPanel.Height = 27;
+            timeLabelPanel.Height = 43;
             timeLabelPanel.HorizontalAlignment = HorizontalAlignment.Right;
 
             var timeLabel = new Label();
             timeLabel.FontSize = 11;
             timeLabel.Padding = new Thickness(0);
             timeLabel.Margin = new Thickness(0);
-            timeLabel.Content = $"Time Start: {InputDataHelper.ScaleTimeByFactor(saccade.EyeStartTime, 3)} {Environment.NewLine}End: {InputDataHelper.ScaleTimeByFactor(saccade.EyeEndTime, 4)}";
+            timeLabel.Content = $"ID: {saccade.Id}{Environment.NewLine}Time Start: {InputDataHelper.ScaleTimeByFactor(saccade.EyeStartTime, 3)} {Environment.NewLine}End: {InputDataHelper.ScaleTimeByFactor(saccade.EyeEndTime, 4)}";
             
             timeLabelPanel.Children.Add(timeLabel);
 
@@ -503,8 +512,9 @@ namespace GazeDataViewer
             itemPanel.Name = eyeMoveTypeTag.ToString();
 
             var saccLabel = new Label();
-            saccLabel.Padding = new Thickness(0, 10, 5, 0);
-            saccLabel.Content = $"#{saccade.Id}";
+            saccLabel.Padding = new Thickness(0, 15, 5, 0);
+            saccLabel.Content = $"Frame";
+            saccLabel.FontSize = 11;
 
             var controlPadding = new Thickness(2, 5, 2, 5);
 
@@ -575,9 +585,7 @@ namespace GazeDataViewer
                         saccEndIndex = saccEndIndex + calcConfig.EyeEndShiftPeroid;
 
                        var prevoiusSaccadeItem = oldSaccadePositions.FirstOrDefault(x => x.Id == saccId);
-                        var saccItem = SaccadeDataHelper.GetSaccadePositionItem(saccId, saccStartIndex, saccEndIndex, prevoiusSaccadeItem.SpotMove.SpotStartIndex,
-                            prevoiusSaccadeItem.SpotMove.SpotStartTimeDelta, prevoiusSaccadeItem.SpotMove.SpotStartCoord, prevoiusSaccadeItem.SpotMove.SpotEndIndex, prevoiusSaccadeItem.SpotMove.SpotEndTimeDelta,
-                            prevoiusSaccadeItem.SpotMove.SpotEndCoord, SpotEyePoints, prevoiusSaccadeItem.IsStartFound, prevoiusSaccadeItem.IsEndFound);
+                        var saccItem = SaccadeDataHelper.GetSaccadePositionItem(saccId, saccStartIndex, saccEndIndex, prevoiusSaccadeItem, SpotEyePoints);
                         newSaccadePositions.Add(saccItem);
                     }
                 }
@@ -1184,7 +1192,7 @@ namespace GazeDataViewer
 
             int newId;
 
-            if (this.SaccadePositions == null && this.AntiSaccadePositions == null)
+            if (this?.SaccadePositions.Count == 0 && this?.AntiSaccadePositions.Count == 0)
             {
                 newId = 0;
             }
@@ -1231,6 +1239,8 @@ namespace GazeDataViewer
                     SpotEndTimeDelta = SpotEyePoints.TimeDeltas[spotShiftIndex]
                 }
             };
+
+            newEyeMove = EyeMoveSearchToolBox.CountTestValuesForEyeMove(newEyeMove, this.SpotEyePoints);
 
             var eyeMoveType = Enum.Parse(typeof(EyeMoveTypes), ComboAddEMType.SelectedValue.ToString());
 

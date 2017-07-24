@@ -41,8 +41,11 @@ namespace GazeDataViewer.Classes.AntiSaccade
             var isRising = !EyeMoveSearchToolBox.IsRising(spotStartOscilationXPosition, spotEndOscilationXPosition);
 
             bool isStartFound = false;
+            double controlAmpTestValue = -1;
+            double minLengthTestValue = -1;
             EyeMoveSearchToolBox.FindStartByMoveDirection(ref antiSaccadeStartFindCoords, ref eyeStartIndex,
-            spotStartOscilationXPosition, controlMinCord, controlMaxCord, isRising, meanControlAmplitude, minLenght, ref isStartFound);
+            spotStartOscilationXPosition, controlMinCord, controlMaxCord, isRising, meanControlAmplitude, minLenght, 
+            ref isStartFound, ref controlAmpTestValue, ref minLengthTestValue);
 
             bool isEndFound = false;
             var endIndex = EyeMoveSearchToolBox.GetEndBySpeedChange(antiSaccadeStartFindCoords, eyeStartIndex, config, ref isEndFound);

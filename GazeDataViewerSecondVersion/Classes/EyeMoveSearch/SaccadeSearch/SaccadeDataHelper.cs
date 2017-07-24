@@ -1,4 +1,5 @@
-﻿using GazeDataViewer.Classes.SpotAndGain;
+﻿using GazeDataViewer.Classes.EyeMoveSearch;
+using GazeDataViewer.Classes.SpotAndGain;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,35 +37,26 @@ namespace GazeDataViewer.Classes.Saccade
             };
         }
 
-        public static EyeMove GetSaccadePositionItem(int id, int saccadeStartIndex, int saccadeEndIndex, int spotOverMeanStartIndex,
-            double spotStartTime, double spotStartCoord, int spotOverMeanEndIndex,
-            double spotEndTime, double spotEndCoord, ResultData results, bool isStartFound, bool isEndFound)
+        public static EyeMove GetSaccadePositionItem(int id, int saccadeStartIndex, int saccadeEndIndex, EyeMove prevoiusSaccadeItem,  ResultData results)
         {
-            return new EyeMove
+            var eyeMove = new EyeMove
             {
                 Id = id,
-                IsStartFound = isStartFound,
+                IsStartFound = prevoiusSaccadeItem.IsStartFound,
                 EyeStartIndex = saccadeStartIndex,
                 EyeStartTime = results.TimeDeltas[saccadeStartIndex],
                 EyeStartCoord = results.EyeCoords[saccadeStartIndex],
 
-                IsEndFound = isEndFound,
+                IsEndFound = prevoiusSaccadeItem.IsEndFound,
                 EyeEndIndex = saccadeEndIndex,
                 EyeEndTime = results.TimeDeltas[saccadeEndIndex],
                 EyeEndCoord = results.EyeCoords[saccadeEndIndex],
 
-                SpotMove = new Spot.SpotMove
-                {
-                    SpotStartIndex = spotOverMeanStartIndex,
-                    SpotStartTimeDelta = spotStartTime,
-                    SpotStartCoord = spotStartCoord,
-
-                    SpotEndIndex = spotOverMeanEndIndex,
-                    SpotEndTimeDelta = spotEndTime,
-                    SpotEndCoord = spotEndCoord
-                }
-
+                SpotMove = prevoiusSaccadeItem.SpotMove
             };
+
+            eyeMove = EyeMoveSearchToolBox.CountTestValuesForEyeMove(eyeMove, results);
+            return eyeMove;
         }
 
 

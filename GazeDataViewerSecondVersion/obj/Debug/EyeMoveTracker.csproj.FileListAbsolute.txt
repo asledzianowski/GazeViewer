@@ -37,3 +37,4 @@ D:\Shared\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\obj\Debug\Gaze
 D:\Shared\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\obj\Debug\GazeDataViewer.Properties.Resources.resources
 D:\Shared\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\obj\Debug\EyeMoveTracker.csproj.GenerateResource.Cache
 D:\Shared\GazeDataViewerSecondVersion\GazeDataViewerSecondVersion\obj\Debug\EyeMoveTracker.csprojResolveAssemblyReference.cache
+D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\obj\Debug\EyeMoveTracker.csprojResolveAssemblyReference.cache

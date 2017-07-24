@@ -86,14 +86,7 @@ namespace GazeDataViewer.Classes.Saccade
 
             return new EyeMoveCalculation
             {
-                Id = saccadePosition.Id,
-                IsFirstMove = saccadePosition.IsFirstMove,
-                EyeMoveType = eyeMoveType,
-                SpotStartIndex = saccadePosition.SpotMove.SpotStartIndex,
-                SpotEndIndex = saccadePosition.SpotMove.SpotEndIndex,
-                EyeStartIndex = saccadePosition.EyeStartIndex,
-                EyeEndIndex = saccadePosition.EyeEndIndex,
-
+                EyeMove = saccadePosition,
                 LatencyFrameCount = Convert.ToInt32(spotEyeIndexDiff),
                 DurationFrameCount = Convert.ToInt32(frameCount),
                 Latency = Math.Round(latency,3),

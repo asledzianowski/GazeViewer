@@ -8,6 +8,9 @@ namespace GazeDataViewer.Classes.EyeMoveSearch
 {
     public static class PursuitMoveHelper
     {
+        /// <summary>
+        /// http://lab.polygonal.de/2007/07/18/fast-and-accurate-sinecosine-approximation/
+        /// </summary>
         public static double? GetSinusoideApproximation(double x)
         {
             double? sin = null;

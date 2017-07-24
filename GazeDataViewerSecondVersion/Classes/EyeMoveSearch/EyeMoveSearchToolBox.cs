@@ -1,4 +1,6 @@
-﻿using System;
+﻿using GazeDataViewer.Classes.Saccade;
+using GazeDataViewer.Classes.SpotAndGain;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -119,8 +121,31 @@ namespace GazeDataViewer.Classes.EyeMoveSearch
 
         }
 
+        public static EyeMove CountTestValuesForEyeMove(EyeMove eyeMove, ResultData results)
+        {
+            var isRising = IsRising(eyeMove.SpotMove.SpotStartCoord, eyeMove.SpotMove.SpotEndCoord);
+
+            if (isRising)
+            {
+                eyeMove.ControlAmpTestValue = results.EyeCoords[eyeMove.EyeStartIndex + 1] - results.EyeCoords[eyeMove.EyeStartIndex];
+                eyeMove.MinLengthTestValue = results.EyeCoords[eyeMove.EyeStartIndex + 2] - results.EyeCoords[eyeMove.EyeStartIndex];
+            }
+            else
+            {
+                eyeMove.ControlAmpTestValue = results.EyeCoords[eyeMove.EyeStartIndex] - results.EyeCoords[eyeMove.EyeStartIndex + 1];
+                eyeMove.MinLengthTestValue = results.EyeCoords[eyeMove.EyeStartIndex] - results.EyeCoords[eyeMove.EyeStartIndex + 2];
+            }
+
+            eyeMove.ControlAmpTestValue = Math.Abs(eyeMove.ControlAmpTestValue);
+            eyeMove.MinLengthTestValue = Math.Abs(eyeMove.MinLengthTestValue);
+            return eyeMove;
+        }
+
+
+
         public static void FindStartByMoveDirection(ref double[] startCoords, ref int eyeStartIndex, double spotStartX,
-             double controlMin, double controlMax, bool isRising, double controlAmp, double minLength, ref bool isStartFound)
+             double controlMin, double controlMax, bool isRising, double controlAmp, double minLength,
+             ref bool isStartFound, ref double controlAmpTestValue, ref double minLengthTestValue)
         {
             var firstSaccadeFrameIndx = 0;
             var secondSaccadeFrameIndx = 1;
@@ -139,15 +164,19 @@ namespace GazeDataViewer.Classes.EyeMoveSearch
                     {
                         isCordsDirection = startCoords[firstSaccadeFrameIndx] < startCoords[secondSaccadeFrameIndx]
                         && startCoords[secondSaccadeFrameIndx] < startCoords[thirdSaccadeFrameIndx];
-                        isCordsAmp = (startCoords[secondSaccadeFrameIndx] - startCoords[firstSaccadeFrameIndx]) > controlAmp;
-                        isCordsLength = (startCoords[thirdSaccadeFrameIndx] - startCoords[firstSaccadeFrameIndx]) > minLength;
+                        controlAmpTestValue = (startCoords[secondSaccadeFrameIndx] - startCoords[firstSaccadeFrameIndx]);
+                        isCordsAmp = controlAmpTestValue > controlAmp;
+                        minLengthTestValue = (startCoords[thirdSaccadeFrameIndx] - startCoords[firstSaccadeFrameIndx]);
+                        isCordsLength = minLengthTestValue > minLength;
                     }
                     else
                     {
                         isCordsDirection = startCoords[firstSaccadeFrameIndx] > startCoords[secondSaccadeFrameIndx]
                         && startCoords[secondSaccadeFrameIndx] > startCoords[thirdSaccadeFrameIndx];
-                        isCordsAmp = (startCoords[firstSaccadeFrameIndx] - startCoords[secondSaccadeFrameIndx]) > controlAmp;
-                        isCordsLength = (startCoords[firstSaccadeFrameIndx] - startCoords[thirdSaccadeFrameIndx]) > minLength;
+                        controlAmpTestValue = (startCoords[firstSaccadeFrameIndx] - startCoords[secondSaccadeFrameIndx]);
+                        isCordsAmp = controlAmpTestValue > controlAmp;
+                        minLengthTestValue = (startCoords[firstSaccadeFrameIndx] - startCoords[thirdSaccadeFrameIndx]);
+                        isCordsLength = minLengthTestValue > minLength;
                     }
 
                     if (isCordsDirection)
@@ -165,9 +194,6 @@ namespace GazeDataViewer.Classes.EyeMoveSearch
                     if (isLongMoveOneDirection)
                     {
                         isStartFound = true;
-
-
-
 
                         //if (isRising && controlMax > startCoords[0] )
                         //{
