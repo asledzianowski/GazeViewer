@@ -24,11 +24,10 @@ namespace GazeDataViewer.Classes.Saccade
             var spotEndOscilationXPosition = results.SpotCoords[spotStartIndex + 1];
 
             var controlWindowStartIndex = spotStartIndex;
-            var controlWindowCoords = results.EyeCoords.Skip(spotStartIndex - config.ControlWindowLength).Take(config.ControlWindowLength).ToArray();
+            var controlWindowCoords = EyeMoveSearchToolBox.GetControlWindow(results, spotStartIndex, config.ControlWindowLength);
 
-            var controlMaxCord = controlWindowCoords.Max();
-            var controlMinCord = controlWindowCoords.Min();
-            var meanControlAmplitude = (controlMaxCord - controlMinCord) / config.ControlAmpDivider; /*2*/
+
+            var meanControlAmplitude = EyeMoveSearchToolBox.CalculateControlAmplitude(controlWindowCoords, config.ControlAmpDivider);
             var minLenght = config.MinLength; /*0.4*/
 
 
@@ -41,7 +40,7 @@ namespace GazeDataViewer.Classes.Saccade
             double controlAmpTestValue = -1;
             double minLengthTestValue = -1;
             EyeMoveSearchToolBox.FindStartByMoveDirection(ref saccadeStartFindCoords, ref eyeStartIndex,
-                spotStartOscilationXPosition, controlMinCord, controlMaxCord, isRising, meanControlAmplitude, minLenght, 
+                spotStartOscilationXPosition, isRising, meanControlAmplitude, minLenght, 
                 ref isStartFound, ref controlAmpTestValue, ref minLengthTestValue);
 
             bool isEndFound = false;

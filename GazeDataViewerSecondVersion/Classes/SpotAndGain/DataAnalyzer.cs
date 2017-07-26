@@ -35,19 +35,19 @@ namespace GazeDataViewer.Classes.SpotAndGain
                 }
 
                 
-                if (appVal != null)
+                if (appVal != null && i < data.TimeDeltas.Count() - latency)
                 {
                     approximations.Add(data.TimeDeltas[i], appVal.GetValueOrDefault());
                 }
-                else
-                { 
-                    //var randomVal = Convert.ToDouble(new Random().Next(-1, 2)); //min + new Random().NextDouble() * (max - min);
-                    //if(randomVal != 0)
-                    //{
-                    //    randomVal = randomVal / 10;
-                    //}
-                    approximations.Add(data.TimeDeltas[i], 0);
-                }
+                //else
+                //{ 
+                //    //var randomVal = Convert.ToDouble(new Random().Next(-1, 2)); //min + new Random().NextDouble() * (max - min);
+                //    //if(randomVal != 0)
+                //    //{
+                //    //    randomVal = randomVal / 10;
+                //    //}
+                //    approximations.Add(data.TimeDeltas[i], 0);
+                //}
                 
             }
 

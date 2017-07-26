@@ -23,6 +23,19 @@ namespace GazeDataViewer.Classes.EyeMoveSearch
             }
         }
 
+        public static double CalculateControlAmplitude(double[] controlWindowCoords, double divider)
+        {
+            var controlMaxCord = controlWindowCoords.Max();
+            var controlMinCord = controlWindowCoords.Min();
+            var meanControlAmplitude = (controlMaxCord - controlMinCord) / divider;
+            return meanControlAmplitude;
+        }
+
+        public static double[] GetControlWindow(ResultData results, int spotStartIndex, int controlWindowLength)
+        {
+            return results.EyeCoords.Skip(spotStartIndex - controlWindowLength).Take(controlWindowLength).ToArray();
+        }
+
         public static int GetEndByDirectionChange(double[] startCoords, int eyeStartIndex, bool isRising, ref bool isEndFound)
         {
             var minDuration = 3;
@@ -144,7 +157,7 @@ namespace GazeDataViewer.Classes.EyeMoveSearch
 
 
         public static void FindStartByMoveDirection(ref double[] startCoords, ref int eyeStartIndex, double spotStartX,
-             double controlMin, double controlMax, bool isRising, double controlAmp, double minLength,
+             bool isRising, double controlAmp, double minLength,
              ref bool isStartFound, ref double controlAmpTestValue, ref double minLengthTestValue)
         {
             var firstSaccadeFrameIndx = 0;

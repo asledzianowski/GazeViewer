@@ -25,11 +25,9 @@ namespace GazeDataViewer.Classes.AntiSaccade
             //(wtedy zaliczamy jako prawidlowa antysakade) czyli ruch oka w kierunku przeciwnym do plamki 
             //- jesli takiego nie wykonuje to zaliczamy jako zly wynik.
 
-            var controlWindowCoords = results.EyeCoords.Skip(spotStartIndex - this.config.ControlWindowLength).Take(config.ControlWindowLength).ToArray();
+            var controlWindowCoords = EyeMoveSearchToolBox.GetControlWindow(results, spotStartIndex, config.ControlWindowLength);
 
-            var controlMaxCord = controlWindowCoords.Max();
-            var controlMinCord = controlWindowCoords.Min();
-            var meanControlAmplitude = (controlMaxCord - controlMinCord) / config.ControlAmpDivider; //2;
+            var meanControlAmplitude = EyeMoveSearchToolBox.CalculateControlAmplitude(controlWindowCoords, config.ControlAmpDivider);
             var minLenght = config.MinLength; //0.3;
             var anitSaccadeLatency = config.MinLatency; //15;
 
@@ -44,7 +42,7 @@ namespace GazeDataViewer.Classes.AntiSaccade
             double controlAmpTestValue = -1;
             double minLengthTestValue = -1;
             EyeMoveSearchToolBox.FindStartByMoveDirection(ref antiSaccadeStartFindCoords, ref eyeStartIndex,
-            spotStartOscilationXPosition, controlMinCord, controlMaxCord, isRising, meanControlAmplitude, minLenght, 
+            spotStartOscilationXPosition, isRising, meanControlAmplitude, minLenght, 
             ref isStartFound, ref controlAmpTestValue, ref minLengthTestValue);
 
             bool isEndFound = false;
