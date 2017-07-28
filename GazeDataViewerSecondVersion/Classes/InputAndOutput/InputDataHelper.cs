@@ -135,10 +135,48 @@ namespace GazeDataViewer.Classes
             return stime.ToArray();
         }
 
-        public static double ScaleTimeByFactor(double time, int roundBy)
+
+        public static double ScaleByTimeFactor(double time, int roundBy, bool scaleDown)
         {
-            var output = Math.Round(time / Consts.TimeScaleFactor, roundBy);
+            double output;
+            if (scaleDown)
+            {
+                output = Math.Round(time / Consts.TimeScaleFactor, roundBy);
+            }
+            else
+            {
+                output = Math.Round(time * Consts.TimeScaleFactor, roundBy);
+            }
             return output;
+        }
+
+        public static double? GetTimeFromIndex(SpotGazeFileData resultData, int index)
+        {
+            if (index < resultData.TimeDeltas.Count())
+            {
+                var delta = resultData.TimeDeltas[index];
+                var scaledDelta = ScaleByTimeFactor(delta, 2, true);
+                return scaledDelta;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public static int? GetIndexFromTime(SpotGazeFileData resultData, double delta)
+        {
+            var scaledDelta = ScaleByTimeFactor(delta, 2, false);
+            try
+            {
+                var indexItem = resultData.TimeDeltas.Where(x => x >= scaledDelta).OrderBy(x => x).FirstOrDefault();
+                var index = Array.IndexOf(resultData.TimeDeltas, indexItem);
+                return index;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public static SpotGazeFileData CutData(SpotGazeFileData resultData, int skipCount, int takeCount)

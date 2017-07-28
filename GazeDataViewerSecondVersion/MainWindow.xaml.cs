@@ -95,7 +95,8 @@ namespace GazeDataViewer
             if (fileData != null)
             {
                 this.FileData = fileData;
-                TBEndRec.Text = FileData.Time.Length.ToString();
+                var timeDelta = InputDataHelper.GetTimeFromIndex(FileData, FileData.TimeDeltas.Count() - 1);
+                TBEndRec.Text = timeDelta.GetValueOrDefault().ToString();
                 var calcConfig = GetCurrentCalcConfig();
                 var dataClone = InputDataHelper.CloneFileData(this.FileData);
                 Analyze(dataClone, calcConfig);
@@ -207,8 +208,8 @@ namespace GazeDataViewer
             }
             else
             {
-                MessageBox.Show("Start rec must be > 0, end rec < rec length ");
-                TBStartRec.Text = "0";
+                MessageBox.Show("Start rec must be > 1, end rec < rec length ");
+                TBStartRec.Text = "1";
                 TBEndRec.Text = FileData.Time.Length.ToString();
             }
         }
@@ -495,7 +496,7 @@ namespace GazeDataViewer
             timeLabel.FontSize = 11;
             timeLabel.Padding = new Thickness(0);
             timeLabel.Margin = new Thickness(0);
-            timeLabel.Content = $"ID: {saccade.Id}{Environment.NewLine}Time Start: {InputDataHelper.ScaleTimeByFactor(saccade.EyeStartTime, 3)} {Environment.NewLine}End: {InputDataHelper.ScaleTimeByFactor(saccade.EyeEndTime, 4)}";
+            timeLabel.Content = $"ID: {saccade.Id}{Environment.NewLine}Time Start: {InputDataHelper.ScaleByTimeFactor(saccade.EyeStartTime, 3, true)} {Environment.NewLine}End: {InputDataHelper.ScaleByTimeFactor(saccade.EyeEndTime, 4, true)}";
             
             timeLabelPanel.Children.Add(timeLabel);
 
@@ -602,10 +603,13 @@ namespace GazeDataViewer
             TBSaccadeEndShiftPeroid.Text = calcConfig.EyeEndShiftPeroid.ToString();
             TBSaccadeStartShiftPeroid.Text = calcConfig.EyeStartShiftPeroid.ToString();
             TBEyeShiftPeroid.Text = calcConfig.EyeShiftPeriod.ToString();
-            TBStartRec.Text = calcConfig.RecStart.ToString();
-            TBEndRec.Text = calcConfig.RecEnd.ToString();
             TBSpotAmpProp.Text = calcConfig.SpotAmpProp.ToString();
             TBSpotShiftPeroid.Text = calcConfig.SpotShiftPeriod.ToString();
+
+            TBStartRec.Text = calcConfig.RecStart.ToString();
+
+            var timeDelta = InputDataHelper.GetTimeFromIndex(FileData, calcConfig.RecEnd);
+            TBEndRec.Text = timeDelta.ToString();
         }
 
         private void SetFilterConfigGUI(FiltersConfig filtersConfig)
@@ -662,7 +666,7 @@ namespace GazeDataViewer
             calcConfig.AntiSaccadeMoveFinderConfig = antiSaccadeConfig;
             calcConfig.PursuitMoveFinderConfig = pursuitConfig;
             int recStart;
-            int recEnd;
+            double recEnd;
             int eyeShiftPeriod;
             int spotShiftPeriod;
             double ampProp;
@@ -685,10 +689,21 @@ namespace GazeDataViewer
                 MessageBox.Show($"Wrong value of 'Start Rec'. Should be int.");
             }
 
-            var isRecEnd = int.TryParse(TBEndRec.Text, out recEnd);
-            if (isRecStart)
+          
+            var isRecEnd = double.TryParse(TBEndRec.Text.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out recEnd);
+            if (isRecEnd)
             {
-                calcConfig.RecEnd = recEnd;
+                var recEndIndex = InputDataHelper.GetIndexFromTime(FileData, recEnd);
+                if (recEndIndex != null)
+                {
+
+                    calcConfig.RecEnd = recEndIndex.GetValueOrDefault();
+                }
+                else
+                {
+                    MessageBox.Show($"EndRec: Unable to convert from time to index.");
+                    calcConfig.RecEnd = FileData.TimeDeltas.Count();
+                }
             }
             else
             {
@@ -1317,7 +1332,7 @@ namespace GazeDataViewer
 
             foreach (var spotMove in this.SpotMovePositions)
             {
-                data.Add( new KeyValuePair<double, double>(spotMove.SpotStartTimeStamp, InputDataHelper.ScaleTimeByFactor(spotMove.SpotStartTimeDelta, 2)));
+                data.Add( new KeyValuePair<double, double>(spotMove.SpotStartTimeStamp, InputDataHelper.ScaleByTimeFactor(spotMove.SpotStartTimeDelta, 2, true)));
             }
 
             ComboAddEMSpot.SelectedValuePath = "Key";
