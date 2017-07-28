@@ -95,8 +95,16 @@ namespace GazeDataViewer
             if (fileData != null)
             {
                 this.FileData = fileData;
-                var timeDelta = InputDataHelper.GetTimeFromIndex(FileData, FileData.TimeDeltas.Count() - 1);
-                TBEndRec.Text = timeDelta.GetValueOrDefault().ToString();
+
+
+                var startTimeDelta = InputDataHelper.GetTimeFromIndex(FileData, 1);
+                TBStartRec.Text = startTimeDelta.GetValueOrDefault().ToString();
+
+
+                var endTimeDelta = InputDataHelper.GetTimeFromIndex(FileData, FileData.TimeDeltas.Count() - 1);
+                TBEndRec.Text = endTimeDelta.GetValueOrDefault().ToString();
+
+
                 var calcConfig = GetCurrentCalcConfig();
                 var dataClone = InputDataHelper.CloneFileData(this.FileData);
                 Analyze(dataClone, calcConfig);
@@ -606,10 +614,11 @@ namespace GazeDataViewer
             TBSpotAmpProp.Text = calcConfig.SpotAmpProp.ToString();
             TBSpotShiftPeroid.Text = calcConfig.SpotShiftPeriod.ToString();
 
-            TBStartRec.Text = calcConfig.RecStart.ToString();
+            var startTimeDelta = InputDataHelper.GetTimeFromIndex(FileData, calcConfig.RecStart);
+            TBStartRec.Text = startTimeDelta.ToString();
 
-            var timeDelta = InputDataHelper.GetTimeFromIndex(FileData, calcConfig.RecEnd);
-            TBEndRec.Text = timeDelta.ToString();
+            var endTimeDelta = InputDataHelper.GetTimeFromIndex(FileData, calcConfig.RecEnd);
+            TBEndRec.Text = endTimeDelta.ToString();
         }
 
         private void SetFilterConfigGUI(FiltersConfig filtersConfig)
@@ -665,7 +674,7 @@ namespace GazeDataViewer
             calcConfig.SaccadeMoveFinderConfig = saccadeConfig;
             calcConfig.AntiSaccadeMoveFinderConfig = antiSaccadeConfig;
             calcConfig.PursuitMoveFinderConfig = pursuitConfig;
-            int recStart;
+            double recStart;
             double recEnd;
             int eyeShiftPeriod;
             int spotShiftPeriod;
@@ -679,10 +688,22 @@ namespace GazeDataViewer
             int distanceFromScreen;
 
 
-        var isRecStart = int.TryParse(TBStartRec.Text, out recStart);
+            var isRecStart = double.TryParse(TBStartRec.Text.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, 
+                out recStart);
             if (isRecStart)
             {
-                calcConfig.RecStart = recStart;
+                var recStartIndex = InputDataHelper.GetIndexFromTime(FileData, recStart);
+                if (recStartIndex != null)
+                {
+
+                    calcConfig.RecStart= recStartIndex.GetValueOrDefault();
+                }
+                else
+                {
+                    MessageBox.Show($"Start Rec: Unable to convert from time to index.");
+                    calcConfig.RecStart = 1;
+                }
+                
             }
             else
             {
