@@ -138,7 +138,9 @@ namespace GazeDataViewer
                 TBSavGoayPointsNum.Text = filterConfig.SavitzkyGolayNumberOfPoints.ToString();
             }
 
-            if (calcConfig.RecStart > 0 && calcConfig.RecEnd <= FileData.Time.Length)
+            
+
+            if (calcConfig.RecStart > 0 && calcConfig.RecEnd > 0 && calcConfig.RecEnd <= FileData.TimeDeltas.Count())
             {
                 if (filterConfig.SavitzkyGolayNumberOfPoints >= Math.Abs(calcConfig.RecEnd - calcConfig.RecStart))
                 {
@@ -216,9 +218,13 @@ namespace GazeDataViewer
             }
             else
             {
-                MessageBox.Show("Start rec must be > 1, end rec < rec length ");
-                TBStartRec.Text = "1";
-                TBEndRec.Text = FileData.Time.Length.ToString();
+                MessageBox.Show("Start rec must be > 0, end rec < rec length ");
+
+                var startTimeDelta = InputDataHelper.GetTimeFromIndex(FileData, 1);
+                TBStartRec.Text = startTimeDelta.GetValueOrDefault().ToString();
+
+                var endTimeDelta = InputDataHelper.GetTimeFromIndex(FileData, FileData.TimeDeltas.Count() - 1);
+                TBEndRec.Text = endTimeDelta.GetValueOrDefault().ToString();
             }
         }
 

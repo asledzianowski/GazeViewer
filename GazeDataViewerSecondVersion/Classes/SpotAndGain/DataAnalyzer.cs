@@ -24,12 +24,12 @@ namespace GazeDataViewer.Classes.SpotAndGain
             var data = fileData; // InputDataHelper.CutData(fileData, spotMoveStartIndex, fileData.Spot.Length - spotMoveStartIndex);
             var latency = calcConfig.PursuitMoveFinderConfig.MinLatency;
             var approximations = new Dictionary<double, double>();
-            for(int i = latency; i < data.Eye.Count(); i++)
+            for(int i = latency; i < data.Spot.Count(); i++)
             {
                 double? appVal = null;
-                if (data.Eye[i - latency] != 0)
+                if (data.Spot[i - latency] != 0)
                 {
-                    var originalVal = data.Eye[i - latency];
+                    var originalVal = data.Spot[i - latency];
                     appVal =  PursuitMoveHelper.GetSinusoideApproximation(originalVal);
                     appVal = appVal * calcConfig.PursuitMoveFinderConfig.Multiplication;
                 }
