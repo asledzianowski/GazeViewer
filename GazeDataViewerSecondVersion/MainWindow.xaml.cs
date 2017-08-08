@@ -40,6 +40,7 @@ namespace GazeDataViewer
     /// </summary>
     public partial class MainWindow : Window
     {
+        FileType FileType { get; set; }
         SpotGazeFileData FileData { get; set; }
         ResultData SpotEyePoints { get; set; }
         List<EyeMove> SaccadePositions { get; set; } = new List<EyeMove>();
@@ -59,9 +60,10 @@ namespace GazeDataViewer
         {
             var dialog = new OpenFileDialog();
             dialog.ShowDialog();
-            if (!string.IsNullOrEmpty(dialog.FileName) && InputDataHelper.IsDataFileExtention(dialog.FileName))
+            if (!string.IsNullOrEmpty(dialog.FileName) && InputDataHelper.IsAllowedDataFileExtention(dialog.FileName))
             {
                 LoadDataPathTextBox.Text = dialog.FileName;
+                this.FileType = InputDataHelper.GetFileType(dialog.FileName); 
                 LoadDataAndAnalyze(dialog.FileName);
             }
             else
@@ -96,12 +98,26 @@ namespace GazeDataViewer
             {
                 this.FileData = fileData;
 
+                double? startTimeDelta = null;
+                double? endTimeDelta = null;
 
-                var startTimeDelta = InputDataHelper.GetTimeFromIndex(FileData, 1);
+                //if (this.FileType == FileType.Maruniec)
+                //{
+                //    startTimeDelta = FileData.TimeDeltas[1];
+                //    endTimeDelta = FileData.TimeDeltas[FileData.TimeDeltas.Count() - 1];
+
+                //    startTimeDelta = Math.Round(startTimeDelta.GetValueOrDefault(), 2);
+                //        //InputDataHelper.ScaleByTimeFactor(startTimeDelta.GetValueOrDefault(), 3, false);
+                //    endTimeDelta = Math.Round(endTimeDelta.GetValueOrDefault(), 2);
+                //    //endTimeDelta = InputDataHelper.GetScaledTimeFromIndex(FileData, FileData.TimeDeltas.Count() - 1);
+
+                //}
+               
+                startTimeDelta = InputDataHelper.GetScaledTimeFromIndex(FileData, 1);
+                endTimeDelta = InputDataHelper.GetScaledTimeFromIndex(FileData, FileData.TimeDeltas.Count() - 1);
+                
+
                 TBStartRec.Text = startTimeDelta.GetValueOrDefault().ToString();
-
-
-                var endTimeDelta = InputDataHelper.GetTimeFromIndex(FileData, FileData.TimeDeltas.Count() - 1);
                 TBEndRec.Text = endTimeDelta.GetValueOrDefault().ToString();
 
 
@@ -116,17 +132,17 @@ namespace GazeDataViewer
             }
         }
 
-        private void BulkProcessFiles()
-        {
-            var timeColumnIndex = int.Parse(TBTimestampColumnIndex.Text);
-            var eyeColumnIndex = int.Parse(TBEyeColumnIndex.Text);
-            var spotColumnIndex = int.Parse(TBSpotColumnIndex.Text);
+        //private void BulkProcessFiles()
+        //{
+        //    var timeColumnIndex = int.Parse(TBTimestampColumnIndex.Text);
+        //    var eyeColumnIndex = int.Parse(TBEyeColumnIndex.Text);
+        //    var spotColumnIndex = int.Parse(TBSpotColumnIndex.Text);
 
-            var calcConfig = GetCurrentCalcConfig();
-            var filterConfig = GetCurrentFilterConfig();
-            OutputHelper.GetSummaryForDirectory(@"D:\WynikiBrudno\Wszystkie", timeColumnIndex, eyeColumnIndex, spotColumnIndex, 
-                calcConfig, filterConfig);
-        }
+        //    var calcConfig = GetCurrentCalcConfig();
+        //    var filterConfig = GetCurrentFilterConfig();
+        //    OutputHelper.GetSummaryForDirectory(@"D:\WynikiBrudno\Wszystkie", timeColumnIndex, eyeColumnIndex, spotColumnIndex, 
+        //        calcConfig, filterConfig);
+        //}
 
         private void Analyze(SpotGazeFileData fileData, CalcConfig calcConfig)
         {
@@ -137,8 +153,6 @@ namespace GazeDataViewer
                 filterConfig.SavitzkyGolayNumberOfPoints = Math.Abs(calcConfig.RecEnd - calcConfig.RecStart) - 1;
                 TBSavGoayPointsNum.Text = filterConfig.SavitzkyGolayNumberOfPoints.ToString();
             }
-
-            
 
             if (calcConfig.RecStart > 0 && calcConfig.RecEnd > 0 && calcConfig.RecEnd <= FileData.TimeDeltas.Count())
             {
@@ -159,7 +173,6 @@ namespace GazeDataViewer
                     fileData.Eye = FilterController.FilterBySavitzkyGolay(filterConfig, fileData.Eye);
                 }
 
-
                 var recLenght = (calcConfig.RecEnd - calcConfig.RecStart);
                 fileData = InputDataHelper.CutData(fileData, calcConfig.RecStart, recLenght);
 
@@ -171,15 +184,31 @@ namespace GazeDataViewer
                 GraphClearElements();
                 ApplyEyeSpotSinusoids(fileData.TimeDeltas, fileData.Eye, fileData.Spot);
 
-                //move swith timestamp 9231000 / initial index 5850
-                var pursuitEndTime = fileData.Time.FirstOrDefault(x => x >= 9231000);
+                //pursuit end timestamp 9231000 / initial index 5850
+                // moruniec end 92310
+
+                int pursuitEndStaticTag;
+                int saccadeStartStaticTag;
+
+                if (this.FileType == FileType.Maruniec)
+                {
+                    pursuitEndStaticTag = Consts.PursuitEndTimeMaruniec;
+                    saccadeStartStaticTag = Consts.SaccadeStartTimeMaruniec;
+                }
+                else
+                {
+                    pursuitEndStaticTag = Consts.PursuitEndTimeStandard;
+                    saccadeStartStaticTag = Consts.SaccadeStartTimeStandard;
+                }
+
+                var pursuitEndTime = fileData.Time.FirstOrDefault(x => x >= pursuitEndStaticTag);
                 if (pursuitEndTime == 0)
                 {
                     pursuitEndTime = fileData.Time.LastOrDefault();
                 }
 
                 //Calibration end timestamp 10149000
-                var saccadesStartTime = fileData.Time.FirstOrDefault(x => x >= 10149000);
+                var saccadesStartTime = fileData.Time.FirstOrDefault(x => x >= saccadeStartStaticTag);
                 if(saccadesStartTime == 0)
                 {
                     saccadesStartTime = fileData.Time.LastOrDefault();
@@ -193,17 +222,34 @@ namespace GazeDataViewer
 
                 if (pursuitMovesBlock.Spot.Length > 0)
                 {
-                    var approxPursuitSpotEyePoints = DataAnalyzer.GetApproxEyeSinusoidForPursuitSearch(pursuitMovesBlock, calcConfig);
+                    var spotEyeGain = DataAnalyzer.CountGain(pursuitMovesBlock);
+                    //var spotEyeGain = DataAnalyzer.CountPursoitGain(pursuitMovesBlock.Eye, pursuitMovesBlock.Spot);
+                    var approxPursuitSpotEyePoints = DataAnalyzer.GetApproxEyeSinusoidForPursuitSearch(pursuitMovesBlock, calcConfig, spotEyeGain);
                     ApplyPursutiApproximationSinusoid(approxPursuitSpotEyePoints.Keys.ToArray(), approxPursuitSpotEyePoints.Values.ToArray());
-                    this.PursuitMoveCalculations = DataAnalyzer.CountPursoitParameters(fileData, approxPursuitSpotEyePoints, calcConfig);
+
+                    var eyeToApproxEyeGain = DataAnalyzer.CountPursoitGain(approxPursuitSpotEyePoints.Values.ToArray(), fileData.Spot);
+
+                    var spotOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(fileData.Spot.ToArray()).Sum();
+                    var eyeOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(fileData.Eye.ToArray()).Sum();
+                    //var eyeOnScreenDistanceApproximations = SaccadeDataHelper.CountOnScreenDistance(approximations.Values.ToArray()).Sum();
+
+                    var spotEyeGain2 = eyeOnScreenDistance / spotOnScreenDistance;
+                    //var eyeToApproxEyeGain = eyeOnScreenDistance / eyeOnScreenDistanceApproximations;
+
+                    this.PursuitMoveCalculations = new EyeMoveCalculation
+                    {
+                        Gain = spotEyeGain,
+                        ApproxGain = eyeToApproxEyeGain,
+                        Latency = calcConfig.PursuitMoveFinderConfig.MinLatency
+                    };
                 }
 
                 if (saccadesMovesBlock.Spot.Length > 0)
                 {
                     SpotEyePoints = DataAnalyzer.FindSpotEyePointsForSaccadeAntiSaccadeSearch(saccadesMovesBlock, calcConfig);
 
-                    var saccadeSpotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.Saccade);
-                    var antiSaccadeSpotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.AntiSaccade);
+                    var saccadeSpotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.Saccade, this.FileType);
+                    var antiSaccadeSpotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.AntiSaccade, this.FileType);
 
                     this.ApplySpotPointMarkers(this.SpotEyePoints);
 
@@ -220,10 +266,10 @@ namespace GazeDataViewer
             {
                 MessageBox.Show("Start rec must be > 0, end rec < rec length ");
 
-                var startTimeDelta = InputDataHelper.GetTimeFromIndex(FileData, 1);
+                var startTimeDelta = InputDataHelper.GetScaledTimeFromIndex(FileData, 1);
                 TBStartRec.Text = startTimeDelta.GetValueOrDefault().ToString();
 
-                var endTimeDelta = InputDataHelper.GetTimeFromIndex(FileData, FileData.TimeDeltas.Count() - 1);
+                var endTimeDelta = InputDataHelper.GetScaledTimeFromIndex(FileData, FileData.TimeDeltas.Count() - 1);
                 TBEndRec.Text = endTimeDelta.GetValueOrDefault().ToString();
             }
         }
@@ -620,10 +666,10 @@ namespace GazeDataViewer
             TBSpotAmpProp.Text = calcConfig.SpotAmpProp.ToString();
             TBSpotShiftPeroid.Text = calcConfig.SpotShiftPeriod.ToString();
 
-            var startTimeDelta = InputDataHelper.GetTimeFromIndex(FileData, calcConfig.RecStart);
+            var startTimeDelta = InputDataHelper.GetScaledTimeFromIndex(FileData, calcConfig.RecStart);
             TBStartRec.Text = startTimeDelta.ToString();
 
-            var endTimeDelta = InputDataHelper.GetTimeFromIndex(FileData, calcConfig.RecEnd);
+            var endTimeDelta = InputDataHelper.GetScaledTimeFromIndex(FileData, calcConfig.RecEnd);
             TBEndRec.Text = endTimeDelta.ToString();
         }
 
@@ -698,7 +744,19 @@ namespace GazeDataViewer
                 out recStart);
             if (isRecStart)
             {
-                var recStartIndex = InputDataHelper.GetIndexFromTime(FileData, recStart);
+
+                int? recStartIndex = null;
+                //if (this.FileType == FileType.Maruniec)
+                //{
+                //    var indexItem = FileData.TimeDeltas.Where(x => x >= recStart).OrderBy(x => x).FirstOrDefault();
+                //    recStartIndex = Array.IndexOf(FileData.TimeDeltas, indexItem);
+                //}
+                //else
+                //{
+
+                recStartIndex = InputDataHelper.GetIndexFromScaledTime(FileData, recStart);
+                
+
                 if (recStartIndex != null)
                 {
 
@@ -720,7 +778,16 @@ namespace GazeDataViewer
             var isRecEnd = double.TryParse(TBEndRec.Text.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out recEnd);
             if (isRecEnd)
             {
-                var recEndIndex = InputDataHelper.GetIndexFromTime(FileData, recEnd);
+                int? recEndIndex = null;
+                //if (this.FileType == FileType.Maruniec)
+                //{
+                //    var indexItem = FileData.TimeDeltas.Where(x => x >= recEnd).OrderBy(x => x).FirstOrDefault();
+                //    recEndIndex = Array.IndexOf(FileData.TimeDeltas, indexItem);
+                //}
+               
+                recEndIndex = InputDataHelper.GetIndexFromScaledTime(FileData, recEnd);
+                
+
                 if (recEndIndex != null)
                 {
 
@@ -1123,6 +1190,12 @@ namespace GazeDataViewer
 
             return eyeMoveFinderConfig;
         }
+
+
+        //private bool IsFileTypeMaruniec()
+        //{
+        //    return InputDataHelper.IsMaruniecExtention(LoadDataPathTextBox.Text);
+        //}
         #endregion
 
             #region UI Events
@@ -1510,10 +1583,10 @@ namespace GazeDataViewer
             //}
         }
 
-        private void BulkExportButton_Click(object sender, RoutedEventArgs e)
-        {
-            BulkProcessFiles();
-        }
+        //private void BulkExportButton_Click(object sender, RoutedEventArgs e)
+        //{
+        //    BulkProcessFiles();
+        //}
 
         private void Expander_Expanded(object sender, RoutedEventArgs e)
         {

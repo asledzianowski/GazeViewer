@@ -14,7 +14,96 @@ namespace GazeDataViewer.Classes.SpotAndGain
     public class DataAnalyzer
     {
 
-        public static Dictionary<double, double> GetApproxEyeSinusoidForPursuitSearch(SpotGazeFileData fileData, CalcConfig calcConfig)
+
+        public static double CountGain(SpotGazeFileData fileData)
+        {
+            var mncal = fileData.Spot.Min();
+            var mxcal = fileData.Spot.Max();
+            var amp = (mxcal - mncal) / 2;
+            var srod = (mxcal + mncal) / 2;
+
+            var oneIndexes = new List<int>();
+            var kspIndexes = new List<int>();
+            for(int i = 0; i < fileData.Spot.Length; i++)
+            {
+                var x = fileData.Spot[i];
+                if(Math.Abs(x - srod) > amp * 0.995D)
+                {
+                    kspIndexes.Add(i);
+                }
+               
+            }
+
+            var kspEyeValues= new List<double>();
+            var kspSpotValues = new List<double>();
+
+            var results = new List<double>();
+            var isPositive = true;
+            for(int j = 0; j < kspIndexes.Count; j++)
+            {
+                var index = kspIndexes[j];
+                var sinLenght = 240D;
+
+                if (j > 1000 && j < 2400)
+                {
+                    sinLenght = 120;
+                }
+                else if (j > 2400)
+                {
+                    sinLenght = 30;
+                }
+
+                var controlWindow = new List<double>();
+                var controlWindowLength = Convert.ToInt32(Math.Round(sinLenght / 5, 0));
+
+                if (j > 0)
+                {
+                    controlWindow = fileData.Eye.Skip(index - (controlWindowLength / 2)).Take(controlWindowLength).ToList();
+                }
+                else
+                {
+                    controlWindow = fileData.Eye.Skip(index).Take(controlWindowLength).ToList();
+                }
+
+
+
+                double eyeValue;
+                if (isPositive)
+                {
+                    eyeValue = controlWindow.Max();
+                    isPositive = false;
+                }
+                else
+                {
+                    eyeValue = controlWindow.Min();
+                    isPositive = true;
+                }
+
+
+                //var eyeValue = fileData.Eye[index];
+                var spotValue = fileData.Spot[index];
+                var result = eyeValue / spotValue;
+                results.Add(result);
+
+               
+            }
+
+
+            var output = results.Average();
+            return output;
+
+            //var ksp = fileData.Spot.Where(x => Math.Abs(x - srod) > amp * 0.995D);
+            //var kspIndexes = fileData.Spot.ToList().FindIndex(x => Math.Abs(x - srod) > amp * 0.995D);
+
+            //var spotc = spot - srod;
+            //leyec = leye - srod;
+            //reyec = reye - srod;
+
+            //var ksp = fileData.Spot.Where(x => Math.Abs(x - srod) > amp * 0.995D);
+            //var kspc = ksp(2:(length(ksp) - 1));
+        }
+
+        public static Dictionary<double, double> GetApproxEyeSinusoidForPursuitSearch(SpotGazeFileData fileData, CalcConfig calcConfig, double spotEyeGain)
         {
             //var spotAvg = fileData.Spot.Average();
             //var spotAtAvg = new List<SpotMove>();
@@ -30,7 +119,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
                 if (data.Spot[i - latency] != 0)
                 {
                     var originalVal = data.Spot[i - latency];
-                    appVal =  PursuitMoveHelper.GetSinusoideApproximation(originalVal);
+                    appVal = originalVal * spotEyeGain; //PursuitMoveHelper.GetSinusoideApproximation(originalVal);
                     appVal = appVal * calcConfig.PursuitMoveFinderConfig.Multiplication;
                 }
 
@@ -54,21 +143,13 @@ namespace GazeDataViewer.Classes.SpotAndGain
             return approximations;
         }
 
-        public static EyeMoveCalculation CountPursoitParameters(SpotGazeFileData data, Dictionary<double, double> approximations, CalcConfig calcConfig)
+       
+
+        public static double CountPursoitGain(double[] eye, double[] spot)
         {
-            var spotOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(data.Spot.ToArray()).Sum();
-            var eyeOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(data.Eye.ToArray()).Sum();
-            var eyeOnScreenDistanceApproximations = SaccadeDataHelper.CountOnScreenDistance(approximations.Values.ToArray()).Sum();
-
-            var spotEyeGain = eyeOnScreenDistance / spotOnScreenDistance;
-            var eyeToApproxEyeGain = eyeOnScreenDistance / eyeOnScreenDistanceApproximations;
-
-            return new EyeMoveCalculation
-            {
-                Gain = spotEyeGain,
-                ApproxGain = eyeToApproxEyeGain,
-                Latency = calcConfig.PursuitMoveFinderConfig.MinLatency
-            };
+            var spotOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(spot.ToArray()).Sum();
+            var eyeOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(eye.ToArray()).Sum();
+            return eyeOnScreenDistance / spotOnScreenDistance;
         }
 
         public static ResultData FindSpotEyePointsForSaccadeAntiSaccadeSearch(SpotGazeFileData fileData, CalcConfig calcConfig)

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GazeDataViewer.Classes.Enums
+namespace GazeDataViewer.Classes.EnumsAndStats
 {
-    public enum EyeMoveTypes { Saccade, AntiSaccade, Pursuit }    
+    public enum FileType { Standard, Maruniec, ET}    
 }

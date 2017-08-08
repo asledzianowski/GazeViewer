@@ -428,7 +428,7 @@
                                         HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBPursuitMinLatency">
                                     </TextBox>
                                     <Label ToolTip="Point approximation multiplied by number" Grid.Column="2" Grid.Row="0" Content="Multiply Approx.:" HorizontalAlignment="Right"></Label>
-                                    <TextBox Grid.Column="3" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="1.6" PreviewTextInput="DecimalValidationTextBox" 
+                                    <TextBox Grid.Column="3" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="1" PreviewTextInput="DecimalValidationTextBox" 
                                         HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBPursuitApproxMultiplication">
                                     </TextBox>
                                 </Grid>

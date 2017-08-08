@@ -89,6 +89,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Classes\EnumsAndConsts\Consts.cs" />
+    <Compile Include="Classes\EnumsAndConsts\FileTypes.cs" />
     <Compile Include="Classes\EyeMoveSearch\AntiSaccadeSearch\AntiSaccadeFinder.cs" />
     <Compile Include="Classes\EyeMoveSearch\EyeMoveSearchToolBox.cs" />
     <Compile Include="Classes\EyeMoveSearch\FileDataProcessor.cs" />

@@ -20,9 +20,10 @@ namespace GazeDataViewer.Classes
         /// </summary>
         /// <param name="path">the file path</param>
         /// <returns>Is acceptable data file extention</returns>
-        public static bool IsDataFileExtention(string path)
+        public static bool IsAllowedDataFileExtention(string path)
         {
-            return (path.EndsWith(".txt") || path.EndsWith(".csv"));
+            return (path.EndsWith(Consts.FileExtentionTxt) || path.EndsWith(Consts.FileExtentionCsv) 
+                || path.EndsWith(Consts.FileExtentionMaruniec));
         }
 
         /// <summary>
@@ -32,8 +33,26 @@ namespace GazeDataViewer.Classes
         /// <returns>Is acceptable data file extention</returns>
         public static bool IsStateDataExtention(string path)
         {
-            return path.EndsWith(".xml");
+            return path.EndsWith(Consts.FileExtentionXml);
         }
+
+        public static FileType GetFileType(string path)
+        {
+            if(path.EndsWith(Consts.FileExtentionET))
+            {
+                return FileType.ET;
+            }
+            else if (path.EndsWith(Consts.FileExtentionMaruniec))
+            {
+                return FileType.Maruniec;
+            }
+            else
+            {
+                return FileType.Standard;
+            }
+        }
+
+
 
         public static SpotGazeFileData CloneFileData( SpotGazeFileData originalData)
         {
@@ -46,7 +65,8 @@ namespace GazeDataViewer.Classes
             };
         }
 
-        public static SpotGazeFileData LoadDataForSpotAndGaze(string filePath, int timeColumnIndex, int eyeColumnIndex, int spotColumnIndex)
+        public static SpotGazeFileData LoadDataForSpotAndGaze(string filePath, int timeColumnIndex, int eyeColumnIndex, 
+            int spotColumnIndex)
         {
             var fileInfo = new FileInfo(filePath);
             var fileStream = fileInfo.OpenRead();
@@ -75,7 +95,7 @@ namespace GazeDataViewer.Classes
                     double spot;
                     //var isLEyeConverted = double.TryParse(lineColumns[1], NumberStyles.Any, CultureInfo.InvariantCulture, out lEye);
                     var isREyeConverted = double.TryParse(lineColumns[eyeColumnIndex], NumberStyles.Any, CultureInfo.InvariantCulture, out rEye); //3
-                    var isSopotConverted = double.TryParse(lineColumns[spotColumnIndex], NumberStyles.Any, CultureInfo.InvariantCulture, out spot); //5
+                    var isSopotConverted = double.TryParse(lineColumns[spotColumnIndex].Replace(@"\r", string.Empty), NumberStyles.Any, CultureInfo.InvariantCulture, out spot); //5
 
                     if (!isTimeConverted || /*!isLEyeConverted ||*/ !isREyeConverted || !isSopotConverted)
                     {
@@ -104,7 +124,18 @@ namespace GazeDataViewer.Classes
 
             if (isFileRead)
             {
-                outputData.TimeDeltas = GetDeltaTimespansDouble(outputData.Time);
+                double xScale;
+                var fileType = GetFileType(filePath);
+                if(fileType == FileType.Maruniec)
+                {
+                    xScale = Consts.GraphXScaleFactorMaruniec;
+                }
+                else
+                {
+                    xScale = Consts.GraphXScaleFactorStandard;
+                }
+
+                outputData.TimeDeltas = GetDeltaTimespansDouble(outputData.Time, xScale);
                 return outputData;
             }
             else
@@ -114,7 +145,7 @@ namespace GazeDataViewer.Classes
         }
 
 
-        public static double[] GetDeltaTimespansDouble(int[] timestamps)
+        public static double[] GetDeltaTimespansDouble(int[] timestamps, double xScale)
         {
             var startTime = timestamps[0];
             var stime = new List<double>();
@@ -125,7 +156,7 @@ namespace GazeDataViewer.Classes
                 var timeSpan = timestamps[i] - startTime;
                 if(timeSpan !=0)
                 {
-                    timeSpanD = Convert.ToDouble(timeSpan) / Consts.GraphXScaleFactor;
+                    timeSpanD = Convert.ToDouble(timeSpan) / xScale;
                 }
                 if (!stime.Contains(timeSpanD))
                 {
@@ -141,16 +172,16 @@ namespace GazeDataViewer.Classes
             double output;
             if (scaleDown)
             {
-                output = Math.Round(time / Consts.TimeScaleFactor, roundBy);
+                output = Math.Round(time / Consts.TimeScaleFactorStandard, roundBy);
             }
             else
             {
-                output = Math.Round(time * Consts.TimeScaleFactor, roundBy);
+                output = Math.Round(time * Consts.TimeScaleFactorStandard, roundBy);
             }
             return output;
         }
 
-        public static double? GetTimeFromIndex(SpotGazeFileData resultData, int index)
+        public static double? GetScaledTimeFromIndex(SpotGazeFileData resultData, int index)
         {
             if (index < resultData.TimeDeltas.Count())
             {
@@ -164,7 +195,7 @@ namespace GazeDataViewer.Classes
             }
         }
 
-        public static int? GetIndexFromTime(SpotGazeFileData resultData, double delta)
+        public static int? GetIndexFromScaledTime(SpotGazeFileData resultData, double delta)
         {
             var scaledDelta = ScaleByTimeFactor(delta, 2, false);
             try
@@ -204,25 +235,46 @@ namespace GazeDataViewer.Classes
             };
         }
 
-        public static List<int> GetSpotMoveDataBlock(ResultData resultData, EyeMoveTypes eyeMoveType)
+        public static List<int> GetSpotMoveDataBlock(ResultData resultData, EyeMoveTypes eyeMoveType, FileType fileType)
         {
             int initStartTime = -1;
             int initEndTime = -1;
 
-            if (eyeMoveType == EyeMoveTypes.Pursuit)
+            //if (eyeMoveType == EyeMoveTypes.Pursuit)
+            //{
+            //    initStartTime = 1;
+            //    initEndTime = 9231000;
+            //}
+
+            if (eyeMoveType == EyeMoveTypes.Saccade)
             {
-                initStartTime = 1;
-                initEndTime = 9231000;
-            }
-            else if (eyeMoveType == EyeMoveTypes.Saccade)
-            {
-                initStartTime = 10676000; //9946000;
-                initEndTime = 15095000;
+                if(fileType == FileType.Standard)
+                {
+                    initStartTime = Consts.SaccadeStartTimeStandard;
+                    initEndTime = Consts.AntiSaccadeStartTimeStandard;
+                }
+                else if (fileType == FileType.Maruniec)
+                {
+                    initStartTime = Consts.SaccadeStartTimeMaruniec;
+                    initEndTime = Consts.AntiSaccadeStartTimeMaruniec;
+                }
+                //initStartTime = 10676000; //9946000;
+                //initEndTime = 15095000;
             }
             else if (eyeMoveType == EyeMoveTypes.AntiSaccade)
             {
-                initStartTime = 15426000;
-                initEndTime = 19844000;
+                if (fileType == FileType.Standard)
+                {
+                    initStartTime = Consts.AntiSaccadeStartTimeStandard;
+                }
+                else if(fileType == FileType.Maruniec)
+                {
+                    initStartTime = Consts.AntiSaccadeStartTimeMaruniec;
+                }
+
+                initEndTime = resultData.TimeStamps.Last();
+                //initStartTime = 15426000;
+                //initEndTime = 19844000;
             }
 
             var blockStart = resultData.SpotMoves.FirstOrDefault(x => x.SpotStartTimeStamp >= initStartTime);
