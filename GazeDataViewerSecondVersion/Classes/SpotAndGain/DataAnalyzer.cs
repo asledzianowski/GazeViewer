@@ -1,6 +1,7 @@
 ﻿using Altaxo.Calc.Regression;
 using GazeDataViewer.Classes.Denoise;
 using GazeDataViewer.Classes.EyeMoveSearch;
+using GazeDataViewer.Classes.ParamCalculations;
 using GazeDataViewer.Classes.Saccade;
 using GazeDataViewer.Classes.Spot;
 using System;
@@ -15,8 +16,225 @@ namespace GazeDataViewer.Classes.SpotAndGain
     {
 
 
-        public static double CountGain(SpotGazeFileData fileData)
+        public static PursuitGainCalculations CountPursuitParameters(SpotGazeFileData fileData)
         {
+            var mncal = fileData.Spot.Min();
+            var mxcal = fileData.Spot.Max();
+            var amp = (mxcal - mncal) / 2;
+            var srod = (mxcal + mncal) / 2;
+
+            var start = fileData.Eye.FirstOrDefault(x => x == srod);
+          
+
+            var testValues = new List<double>();
+
+            var kspIndexes = new List<KeyValuePair<double, int>>();
+            var accuracyKspSpotValues = new List<KeyValuePair<double, double>>();
+            var accuracyKspDiffValues = new List<KeyValuePair<double, double>>();
+
+            for (int i = 0; i < fileData.Spot.Length; i++)
+            {
+                var xSpot = fileData.Spot[i];
+
+
+                var sinLenght = 240D;
+
+                if (i > 1000 && i < 2400)
+                {
+                    sinLenght = 120D;
+                }
+                else if (i > 2400)
+                {
+                    sinLenght = 30D;
+                }
+
+                
+                if(Math.Abs(xSpot - srod) > amp * 0.995D)
+                {
+                    kspIndexes.Add(new KeyValuePair<double, int>(sinLenght, i));
+
+                    //Accuracy
+                    var xEye = fileData.Eye[i];
+                    var diffVal = Math.Abs(xEye - xSpot);
+                    accuracyKspDiffValues.Add(new KeyValuePair<double, double>(sinLenght, diffVal));
+                    accuracyKspSpotValues.Add(new KeyValuePair<double, double>(sinLenght, Math.Abs(xSpot)));
+                }
+            }
+
+            var kspEyeValues= new List<double>();
+            var kspSpotValues = new List<double>();
+            
+            var results = new List<KeyValuePair<double, double>>();
+            var isPositive = true;
+            var times = new List<double>();
+            var filteredControlWindows = new List<Dictionary<double, double>>();
+            var kspDiffValues = new List<Dictionary<double, double>>();
+
+            for (int j = 0; j < kspIndexes.Count; j++)
+            {
+                var sinLenght = kspIndexes[j].Key;
+                var index = kspIndexes[j].Value;
+
+                var time = InputDataHelper.GetScaledTimeFromIndex(fileData, index).GetValueOrDefault();
+                times.Add(time);
+
+                var controlWindow = new List<double>();
+                var controlTimeDeltas = new List<double>();
+                var controlWindowLength = Convert.ToInt32(Math.Round(sinLenght / 5, 0));
+
+                if (j > 0)
+                {
+                    controlWindow = fileData.Eye.Skip(index - (controlWindowLength / 2)).Take(controlWindowLength).ToList();
+                    controlTimeDeltas = fileData.TimeDeltas.Skip(index - (controlWindowLength / 2)).Take(controlWindowLength).ToList();
+                }
+                else
+                {
+                    controlWindow = fileData.Eye.Skip(index).Take(controlWindowLength).ToList();
+                    controlTimeDeltas = fileData.TimeDeltas.Skip(index).Take(controlWindowLength).ToList();
+                }
+
+
+                var filterConfig = new FiltersConfig
+                {
+                    FilterByButterworth = true,
+                    ButterworthPassType = FilterButterworth.PassType.Lowpass,
+                    ButterworthFrequency = 1,
+                    ButterworthResonance = 1,
+                    ButterworthSampleRate = 40
+                };
+                var filteredControlWindow = FilterController.FilterByButterworth(filterConfig, controlWindow.ToArray());
+
+                var filteredWindowItems = new Dictionary<double, double>();
+                for(int g = 0; g < filteredControlWindow.Count(); g++)
+                {
+                    filteredWindowItems.Add(controlTimeDeltas[g], filteredControlWindow[g]);
+                }
+                filteredControlWindows.Add(filteredWindowItems);
+
+                double eyeValue;
+                if (isPositive)
+                {
+                    eyeValue = filteredControlWindow.Average(); //Max();
+                    isPositive = false;
+                }
+                else
+                {
+                    eyeValue = filteredControlWindow.Average(); //Min();
+                    isPositive = true;
+                }
+
+                if(sinLenght == 30D)
+                {
+                    testValues.Add(eyeValue);
+                }
+
+                //var eyeValue = fileData.Eye[index];
+                var spotValue = fileData.Spot[index];
+                var result = eyeValue / spotValue;
+                results.Add(new KeyValuePair<double,double>(sinLenght, result));
+
+            }
+
+            var longSinGain = new double?();
+            if (results.Where(x => x.Key == 240D).Count() > 0)
+            {
+                longSinGain = results.Where(x => x.Key == 240D).Select(x => x.Value).Average();
+            }
+            
+            var midSinGain = new double?();
+            if (results.Where(x => x.Key == 120D).Select(x => x.Value).Count() > 0)
+            {
+                midSinGain = results.Where(x => x.Key == 120D).Select(x => x.Value).Average();
+            }
+           
+            var shortSinGain = new double?();
+            if (results.Where(x => x.Key == 30D).Select(x => x.Value).Count() > 0)
+            {
+                shortSinGain = results.Where(x => x.Key == 30D).Select(x => x.Value).Average();
+            }
+          
+            var gainCalculations = new Dictionary<string, double?>();
+            if(longSinGain.HasValue)
+            {
+                gainCalculations.Add("Long", longSinGain.GetValueOrDefault());
+            }
+            else
+            {
+                gainCalculations.Add("Long", null);
+            }
+            
+            if(midSinGain.HasValue)
+            {
+                gainCalculations.Add("Mid", midSinGain.GetValueOrDefault());
+            }  
+            else
+            {
+                gainCalculations.Add("Mid", null);
+            }
+
+            if (shortSinGain.HasValue)
+            {
+                gainCalculations.Add("Short", shortSinGain.GetValueOrDefault());
+            }
+            else
+            {
+                gainCalculations.Add("Short", null);
+            }
+
+            var longSinAcc = new double?();
+            if (accuracyKspDiffValues.Where(x => x.Key == 240D).Count() > 0 && accuracyKspSpotValues.Where(x => x.Key == 240D).Count() > 0)
+            {
+                var longSinW1 = accuracyKspDiffValues.Where(x => x.Key == 240D).Select(x => x.Value).Sum();
+                var longSinW2 = accuracyKspSpotValues.Where(x => x.Key == 240D).Select(x => x.Value).Sum();
+                longSinAcc = 1D - longSinW1 / longSinW2;
+            }
+
+            var midSinAcc = new double?();
+            if (accuracyKspDiffValues.Where(x => x.Key == 120D).Count() > 0 && accuracyKspDiffValues.Where(x => x.Key == 120D).Count() > 0)
+            {
+                var midSinW1 = accuracyKspDiffValues.Where(x => x.Key == 120D).Select(x => x.Value).Sum();
+                var midSinW2 = accuracyKspSpotValues.Where(x => x.Key == 120D).Select(x => x.Value).Sum();
+                midSinAcc = 1D - midSinW1 / midSinW2;
+            }
+
+
+            var shortSinAcc = new double?();
+            if (accuracyKspDiffValues.Where(x => x.Key == 30D).Count() > 0 && accuracyKspDiffValues.Where(x => x.Key == 30D).Count() > 0)
+            {
+                var shortSinW1 = accuracyKspDiffValues.Where(x => x.Key == 30D).Select(x => x.Value).Sum();
+                var shortSinW2 = accuracyKspSpotValues.Where(x => x.Key == 30D).Select(x => x.Value).Sum();
+                shortSinAcc = 1D - shortSinW1 / shortSinW2;
+            }
+            else
+            {
+                shortSinAcc = null;
+            }
+
+            var accuracyCalculations = new Dictionary<string, double?>();
+            accuracyCalculations.Add("Long", longSinAcc);
+            accuracyCalculations.Add("Mid", midSinAcc);
+            accuracyCalculations.Add("Short", shortSinAcc);
+
+            return new PursuitGainCalculations {Gains = gainCalculations, Accuracies= accuracyCalculations,
+                FilteredControlWindows = filteredControlWindows };
+
+        }
+
+
+        public static double CountAccuracy(SpotGazeFileData fileData)
+        {
+            //accuracy
+            //start from second max/ min to one before last max / min
+            // kspc=ksp(2:(length(ksp)-1));
+            //spotc = spot - srod;
+            //leyec = leye - srod;
+            //reyec = reye - srod;
+            //le = length(kspc);
+            // w1L = sum(abs(leyec(kspc(1):kspc(le))'- spotc(kspc(1):kspc(le))'));
+            //% integral of diff
+            //w2 = sum(abs(spotc(kspc(1):kspc(le)))); % integral of abs sin
+            //   accL = 1 - w1L / w2;
+
             var mncal = fileData.Spot.Min();
             var mxcal = fileData.Spot.Max();
             var amp = (mxcal - mncal) / 2;
@@ -24,83 +242,30 @@ namespace GazeDataViewer.Classes.SpotAndGain
 
             var oneIndexes = new List<int>();
             var kspIndexes = new List<int>();
-            for(int i = 0; i < fileData.Spot.Length; i++)
-            {
-                var x = fileData.Spot[i];
-                if(Math.Abs(x - srod) > amp * 0.995D)
-                {
-                    kspIndexes.Add(i);
-                }
-               
-            }
-
-            var kspEyeValues= new List<double>();
+            //var kspEyeValues = new List<double>();
             var kspSpotValues = new List<double>();
+            var kspDiffValues = new List<double>();
 
-            var results = new List<double>();
-            var isPositive = true;
-            for(int j = 0; j < kspIndexes.Count; j++)
+           
+            // kspc=ksp(2:(length(ksp)-1));
+            for (int i = 1; i < fileData.Spot.Length-1; i++)
             {
-                var index = kspIndexes[j];
-                var sinLenght = 240D;
-
-                if (j > 1000 && j < 2400)
+                var xSpot = fileData.Spot[i];
+                if (Math.Abs(xSpot - srod) > amp * 0.995D)
                 {
-                    sinLenght = 120;
+                    var xEye = fileData.Eye[i];
+                    var val = Math.Abs(xEye - xSpot);
+                    kspDiffValues.Add(val);
+                    kspSpotValues.Add(Math.Abs(xSpot));
+                    //kspEyeValues.Add(Math.Abs(fileData.Eye[i]));
                 }
-                else if (j > 2400)
-                {
-                    sinLenght = 30;
-                }
-
-                var controlWindow = new List<double>();
-                var controlWindowLength = Convert.ToInt32(Math.Round(sinLenght / 5, 0));
-
-                if (j > 0)
-                {
-                    controlWindow = fileData.Eye.Skip(index - (controlWindowLength / 2)).Take(controlWindowLength).ToList();
-                }
-                else
-                {
-                    controlWindow = fileData.Eye.Skip(index).Take(controlWindowLength).ToList();
-                }
-
-
-
-                double eyeValue;
-                if (isPositive)
-                {
-                    eyeValue = controlWindow.Max();
-                    isPositive = false;
-                }
-                else
-                {
-                    eyeValue = controlWindow.Min();
-                    isPositive = true;
-                }
-
-
-                //var eyeValue = fileData.Eye[index];
-                var spotValue = fileData.Spot[index];
-                var result = eyeValue / spotValue;
-                results.Add(result);
-
-               
             }
 
+            var w1 = kspDiffValues.Sum();
+            var w2 = kspSpotValues.Sum();
+            var acc = 1 - w1 / w2;
+            return acc;
 
-            var output = results.Average();
-            return output;
-
-            //var ksp = fileData.Spot.Where(x => Math.Abs(x - srod) > amp * 0.995D);
-            //var kspIndexes = fileData.Spot.ToList().FindIndex(x => Math.Abs(x - srod) > amp * 0.995D);
-
-            //var spotc = spot - srod;
-            //leyec = leye - srod;
-            //reyec = reye - srod;
-
-            //var ksp = fileData.Spot.Where(x => Math.Abs(x - srod) > amp * 0.995D);
-            //var kspc = ksp(2:(length(ksp) - 1));
         }
 
         public static Dictionary<double, double> GetApproxEyeSinusoidForPursuitSearch(SpotGazeFileData fileData, CalcConfig calcConfig, double spotEyeGain)

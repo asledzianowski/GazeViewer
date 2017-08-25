@@ -21,7 +21,14 @@ namespace GazeDataViewer.Classes.Saccade
         public double MaxVelocity { get; set; }
         public double AvgVelocity { get; set; }
         public double Gain { get; set; }
-        public double ApproxGain { get; set; }
+
+        public double? PursuitLongSinGain { get; set; }
+        public double? PursuitMidSinGain { get; set; }
+        public double? PursuitShortSinGain { get; set; }
+
+        public double? PursuitLongSinAccuracy { get; set; }
+        public double? PursuitMidSinAccuracy { get; set; }
+        public double? PursuitShortSinAccuracy { get; set; }
 
 
     }

@@ -17,3 +17,4 @@ D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersi
 D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\obj\Release\GazeDataViewer.g.resources
 D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\obj\Release\GazeDataViewer.Properties.Resources.resources
 D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\obj\Release\EyeMoveTracker.csproj.GenerateResource.Cache
+D:\Development\TheEyeTribeSDK\GazeViewerGit\GazeViewer\GazeDataViewerSecondVersion\obj\Release\EyeMoveTracker.csprojResolveAssemblyReference.cache

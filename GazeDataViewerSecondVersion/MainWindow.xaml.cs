@@ -222,25 +222,52 @@ namespace GazeDataViewer
 
                 if (pursuitMovesBlock.Spot.Length > 0)
                 {
-                    var spotEyeGain = DataAnalyzer.CountGain(pursuitMovesBlock);
+                    var pursuitCalculations = DataAnalyzer.CountPursuitParameters(pursuitMovesBlock);
+                    ApplyPursuitFilteredWindows(pursuitCalculations.FilteredControlWindows);
+
                     //var spotEyeGain = DataAnalyzer.CountPursoitGain(pursuitMovesBlock.Eye, pursuitMovesBlock.Spot);
-                    var approxPursuitSpotEyePoints = DataAnalyzer.GetApproxEyeSinusoidForPursuitSearch(pursuitMovesBlock, calcConfig, spotEyeGain);
-                    ApplyPursutiApproximationSinusoid(approxPursuitSpotEyePoints.Keys.ToArray(), approxPursuitSpotEyePoints.Values.ToArray());
+                    //var approxPursuitSpotEyePoints = DataAnalyzer.GetApproxEyeSinusoidForPursuitSearch(pursuitMovesBlock, calcConfig, pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Total").Value);
+                    //ApplyPursutiApproximationSinusoid(approxPursuitSpotEyePoints.Keys.ToArray(), approxPursuitSpotEyePoints.Values.ToArray());
 
-                    var eyeToApproxEyeGain = DataAnalyzer.CountPursoitGain(approxPursuitSpotEyePoints.Values.ToArray(), fileData.Spot);
 
-                    var spotOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(fileData.Spot.ToArray()).Sum();
-                    var eyeOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(fileData.Eye.ToArray()).Sum();
+                    //var eyeToApproxEyeGain = DataAnalyzer.CountPursoitGain(approxPursuitSpotEyePoints.Values.ToArray(), fileData.Spot);
+
+                    //var spotOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(fileData.Spot.ToArray()).Sum();
+                    //var eyeOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(fileData.Eye.ToArray()).Sum();
                     //var eyeOnScreenDistanceApproximations = SaccadeDataHelper.CountOnScreenDistance(approximations.Values.ToArray()).Sum();
 
-                    var spotEyeGain2 = eyeOnScreenDistance / spotOnScreenDistance;
+                    //var spotEyeGain2 = eyeOnScreenDistance / spotOnScreenDistance;
                     //var eyeToApproxEyeGain = eyeOnScreenDistance / eyeOnScreenDistanceApproximations;
 
+                    var longGain = new double?();
+                    if(pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Long").Value.HasValue)
+                    {
+                        longGain = pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Long").Value;
+                    }
+                    
+                    var midGain = new double?();
+                    if (pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Mid").Value.HasValue)
+                    {
+                        midGain = pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Mid").Value.GetValueOrDefault();
+                    }
+                    
+                    var shortGain = new double?();
+                    if (pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Short").Value.HasValue)
+                    {
+                        shortGain = pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Short").Value.GetValueOrDefault();
+                    }
+                   
+                   
                     this.PursuitMoveCalculations = new EyeMoveCalculation
                     {
-                        Gain = spotEyeGain,
-                        ApproxGain = eyeToApproxEyeGain,
-                        Latency = calcConfig.PursuitMoveFinderConfig.MinLatency
+                        PursuitLongSinGain = longGain,
+                        PursuitMidSinGain = midGain,
+                        PursuitShortSinGain = shortGain,
+                        
+
+                        PursuitLongSinAccuracy = pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Long").Value.GetValueOrDefault(),
+                        PursuitMidSinAccuracy = pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Mid").Value.GetValueOrDefault(),
+                        PursuitShortSinAccuracy = pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Short").Value.GetValueOrDefault(),
                     };
                 }
 
@@ -261,6 +288,7 @@ namespace GazeDataViewer
                 {
                     FitGraphView(fileData);
                 }
+
             }
             else
             {
@@ -359,6 +387,12 @@ namespace GazeDataViewer
             var timeAxisDataSource = new EnumerableDataSource<double>(timeDeltas);
             timeAxisDataSource.SetXMapping(x => x);
 
+            timeAxis.LabelProvider.CustomFormatter = (tickInfo) =>
+            {
+                var output = (tickInfo.Tick / 100).ToString();
+                return output;
+            };
+
             var eyeDataSource = new EnumerableDataSource<double>(eyeCoords);
             eyeDataSource.SetYMapping(x => x);
 
@@ -381,6 +415,32 @@ namespace GazeDataViewer
 
             amplitudePlotter.Children.Add(line);
         }
+
+
+        private void ApplyPursuitFilteredWindows(List<Dictionary<double, double>> filteredControlWindows)
+        {
+            foreach(var window in filteredControlWindows)
+            {
+                var timeAxisDataSource = new EnumerableDataSource<double>(window.Keys);
+                timeAxisDataSource.SetXMapping(x => x);
+
+                var eyeDataSource = new EnumerableDataSource<double>(window.Values);
+                eyeDataSource.SetYMapping(x => x);
+
+                var eyeCompositeDataSource = new CompositeDataSource(timeAxisDataSource, eyeDataSource);
+
+                var marker = new MarkerPointsGraph(eyeCompositeDataSource);
+                var markPen = new CirclePointMarker();
+                markPen.Pen = new Pen(Brushes.YellowGreen, 1);
+                markPen.Size = 1;
+                marker.Name = "FilteredWindowMarker";
+                markPen.Fill = Brushes.YellowGreen;
+                marker.Marker = markPen;
+
+                amplitudePlotter.Children.Add(marker);
+            }
+        }
+
 
         private void ApplyPursutiApproximationSinusoid(double[] timeDeltas, double[] eyeCoords)
         {

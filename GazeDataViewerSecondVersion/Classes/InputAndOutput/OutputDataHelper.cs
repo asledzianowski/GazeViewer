@@ -33,10 +33,40 @@ namespace GazeDataViewer.Classes.DataAndLog
             sb.Append(Environment.NewLine);
             sb.Append(Environment.NewLine);
 
-            sb.Append($"Eye/Spot gain: {Math.Round(calc.Gain, 2)} ");
+            if (calc.PursuitLongSinGain != null)
+            {
+                sb.Append($"Eye/Spot Long Sin Gain: {Math.Round(calc.PursuitLongSinGain.GetValueOrDefault(), 2)} ");
+                sb.Append(Environment.NewLine);
+            }
+            if (calc.PursuitMidSinGain != null)
+            {
+                sb.Append($"Eye/Spot Mid Sin Gain: {Math.Round(calc.PursuitMidSinGain.GetValueOrDefault(), 2)} ");
+                sb.Append(Environment.NewLine);
+            }
+
+            if (calc.PursuitShortSinGain != null)
+            {
+                sb.Append($"Eye/Spot Short Sin Gain: {Math.Round(calc.PursuitShortSinGain.GetValueOrDefault(), 2)} ");
+                sb.Append(Environment.NewLine);
+            }
+
             sb.Append(Environment.NewLine);
-            sb.Append($"Eye/Approx.Eye gain: {Math.Round(calc.ApproxGain,2)} ");
-            sb.Append(Environment.NewLine);
+
+            if (calc.PursuitLongSinAccuracy != null)
+            {
+                sb.Append($"Long Sin Accuracy: {Math.Round(calc.PursuitLongSinAccuracy.GetValueOrDefault(), 2)} ");
+                sb.Append(Environment.NewLine);
+            }
+            if (calc.PursuitMidSinAccuracy != null)
+            {
+                sb.Append($"Mid Sin Accuracy: {Math.Round(calc.PursuitMidSinAccuracy.GetValueOrDefault(), 2)} ");
+                sb.Append(Environment.NewLine);
+            }
+            if (calc.PursuitShortSinAccuracy != null)
+            {
+                sb.Append($"Short Sin Accuracy: {Math.Round(calc.PursuitShortSinAccuracy.GetValueOrDefault(), 2)} ");
+                sb.Append(Environment.NewLine);
+            }
             return sb.ToString();
         }
 

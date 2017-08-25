@@ -108,6 +108,7 @@
     <Compile Include="Classes\GraphControl\SaccadePanelController.cs" />
     <Compile Include="Classes\EyeMoveSearch\SaccadeSearch\SaccadeDataHelper.cs" />
     <Compile Include="Classes\EyeMoveSearch\SaccadeSearch\SaccadeFinder.cs" />
+    <Compile Include="Classes\ParamCalculations\PursuitGainCalculations.cs" />
     <Compile Include="Classes\ParamCalculations\SaccadeParamsCalcuator.cs" />
     <Compile Include="Classes\ParamCalculations\EyeMoveCalculation.cs" />
     <Compile Include="Classes\Serialization\SerializationHelper.cs" />
