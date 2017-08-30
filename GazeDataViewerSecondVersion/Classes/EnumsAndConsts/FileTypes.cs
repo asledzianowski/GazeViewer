@@ -6,5 +6,5 @@ using System.Threading.Tasks;
 
 namespace GazeDataViewer.Classes.EnumsAndStats
 {
-    public enum FileType { Standard, Maruniec, ET}    
+    public enum FileType { Brudno, Maruniec, ET}    
 }

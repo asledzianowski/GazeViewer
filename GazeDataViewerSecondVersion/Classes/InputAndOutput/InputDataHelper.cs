@@ -48,7 +48,7 @@ namespace GazeDataViewer.Classes
             }
             else
             {
-                return FileType.Standard;
+                return FileType.Brudno;
             }
         }
 
@@ -61,7 +61,8 @@ namespace GazeDataViewer.Classes
                 Eye = originalData.Eye,
                 Spot = originalData.Spot,
                 Time = originalData.Time,
-                TimeDeltas = originalData.TimeDeltas
+                TimeDeltas = originalData.TimeDeltas,
+                FileType = originalData.FileType
             };
         }
 
@@ -75,6 +76,7 @@ namespace GazeDataViewer.Classes
             var lines = fileText.Split('\n');
 
             var outputData = new SpotGazeFileData();
+            outputData.FileType = GetFileType(filePath);
             outputData.Time = new int[lines.Length - 1];
             outputData.Eye = new double[lines.Length - 1];
             outputData.Spot = new double[lines.Length - 1];
@@ -124,18 +126,7 @@ namespace GazeDataViewer.Classes
 
             if (isFileRead)
             {
-                double xScale;
-                var fileType = GetFileType(filePath);
-                if(fileType == FileType.Maruniec)
-                {
-                    xScale = Consts.GraphXScaleFactorMaruniec;
-                }
-                else
-                {
-                    xScale = Consts.GraphXScaleFactorStandard;
-                }
-
-                outputData.TimeDeltas = GetDeltaTimespansDouble(outputData.Time, xScale);
+                outputData.TimeDeltas = GetUnifiedTimeDeltas(outputData.Time, outputData.FileType);
                 return outputData;
             }
             else
@@ -144,6 +135,45 @@ namespace GazeDataViewer.Classes
             }
         }
 
+        public static double[] GetUnifiedTimeDeltas(int[] timeStamps, FileType fileType)
+        {
+            double xScale;
+          
+            if (fileType == FileType.Maruniec)
+            {
+                xScale = Consts.GraphXScaleFactorMaruniec;
+            }
+            else
+            {
+                xScale = Consts.GraphXScaleFactorStandard;
+            }
+
+            var unifiedDeltas = GetDeltaTimespansDouble(timeStamps, xScale);
+            return unifiedDeltas;
+
+        }
+
+        public static int[] GetTimeStampsScaled(int[] timestamps, FileType fileType)
+        {
+            int xScale;
+
+            if (fileType == FileType.Maruniec)
+            {
+                xScale = Convert.ToInt32(Consts.GraphXScaleFactorMaruniec);
+            }
+            else
+            {
+                xScale = Convert.ToInt32(Consts.GraphXScaleFactorStandard);
+            }
+
+            var unifiedTimestamps = new List<int>();
+            foreach (var timestamp in timestamps)
+            {
+                unifiedTimestamps.Add(timestamp / xScale);
+            }
+
+            return unifiedTimestamps.ToArray();
+        }
 
         public static double[] GetDeltaTimespansDouble(int[] timestamps, double xScale)
         {
@@ -217,7 +247,8 @@ namespace GazeDataViewer.Classes
                 Eye = resultData.Eye.Skip(skipCount).Take(takeCount).ToArray(),
                 Spot = resultData.Spot.Skip(skipCount).Take(takeCount).ToArray(),
                 Time = resultData.Time.Skip(skipCount).Take(takeCount).ToArray(),
-                TimeDeltas = resultData.TimeDeltas.Skip(skipCount).Take(takeCount).ToArray()
+                TimeDeltas = resultData.TimeDeltas.Skip(skipCount).Take(takeCount).ToArray(),
+                FileType = resultData.FileType
             };
         }
 
@@ -240,15 +271,10 @@ namespace GazeDataViewer.Classes
             int initStartTime = -1;
             int initEndTime = -1;
 
-            //if (eyeMoveType == EyeMoveTypes.Pursuit)
-            //{
-            //    initStartTime = 1;
-            //    initEndTime = 9231000;
-            //}
 
             if (eyeMoveType == EyeMoveTypes.Saccade)
             {
-                if(fileType == FileType.Standard)
+                if(fileType == FileType.Brudno)
                 {
                     initStartTime = Consts.SaccadeStartTimeStandard;
                     initEndTime = Consts.AntiSaccadeStartTimeStandard;
@@ -263,7 +289,7 @@ namespace GazeDataViewer.Classes
             }
             else if (eyeMoveType == EyeMoveTypes.AntiSaccade)
             {
-                if (fileType == FileType.Standard)
+                if (fileType == FileType.Brudno)
                 {
                     initStartTime = Consts.AntiSaccadeStartTimeStandard;
                 }

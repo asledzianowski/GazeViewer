@@ -225,19 +225,6 @@ namespace GazeDataViewer
                     var pursuitCalculations = DataAnalyzer.CountPursuitParameters(pursuitMovesBlock);
                     ApplyPursuitFilteredWindows(pursuitCalculations.FilteredControlWindows);
 
-                    //var spotEyeGain = DataAnalyzer.CountPursoitGain(pursuitMovesBlock.Eye, pursuitMovesBlock.Spot);
-                    //var approxPursuitSpotEyePoints = DataAnalyzer.GetApproxEyeSinusoidForPursuitSearch(pursuitMovesBlock, calcConfig, pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Total").Value);
-                    //ApplyPursutiApproximationSinusoid(approxPursuitSpotEyePoints.Keys.ToArray(), approxPursuitSpotEyePoints.Values.ToArray());
-
-
-                    //var eyeToApproxEyeGain = DataAnalyzer.CountPursoitGain(approxPursuitSpotEyePoints.Values.ToArray(), fileData.Spot);
-
-                    //var spotOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(fileData.Spot.ToArray()).Sum();
-                    //var eyeOnScreenDistance = SaccadeDataHelper.CountOnScreenDistance(fileData.Eye.ToArray()).Sum();
-                    //var eyeOnScreenDistanceApproximations = SaccadeDataHelper.CountOnScreenDistance(approximations.Values.ToArray()).Sum();
-
-                    //var spotEyeGain2 = eyeOnScreenDistance / spotOnScreenDistance;
-                    //var eyeToApproxEyeGain = eyeOnScreenDistance / eyeOnScreenDistanceApproximations;
 
                     var longGain = new double?();
                     if(pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Long").Value.HasValue)
@@ -389,7 +376,7 @@ namespace GazeDataViewer
 
             timeAxis.LabelProvider.CustomFormatter = (tickInfo) =>
             {
-                var output = (tickInfo.Tick / 100).ToString();
+                var output = (tickInfo.Tick / Consts.TimeScaleFactorStandard).ToString();
                 return output;
             };
 
@@ -432,7 +419,7 @@ namespace GazeDataViewer
                 var marker = new MarkerPointsGraph(eyeCompositeDataSource);
                 var markPen = new CirclePointMarker();
                 markPen.Pen = new Pen(Brushes.YellowGreen, 1);
-                markPen.Size = 1;
+                markPen.Size = 2;
                 marker.Name = "FilteredWindowMarker";
                 markPen.Fill = Brushes.YellowGreen;
                 marker.Marker = markPen;
@@ -772,9 +759,9 @@ namespace GazeDataViewer
         }
 
 
-        private void SetPursuitFinderConfigGUI(EyeMoveFinderConfig config)
+        private void SetPursuitFinderConfigGUI(FiltersConfig config)
         {
-            TBPursuitMinLatency.Text = config.MinLatency.ToString();
+            //TBPursuitMinLatency.Text = config.MinLatency.ToString();
         }
 
         private CalcConfig GetCurrentCalcConfig()
@@ -1222,33 +1209,47 @@ namespace GazeDataViewer
             return eyeMoveFinderConfig;
         }
 
-        private EyeMoveFinderConfig GetCurrentPursuitFinderConfig()
+        private FiltersConfig GetCurrentPursuitFinderConfig()
         {
-            var eyeMoveFinderConfig = new EyeMoveFinderConfig();
-            int minLatency;
-            double approxMultiplication;
+            var pursuitWindowsFilter = new FiltersConfig();
+            double pomButterWorthFrequency;
+            double pomButterWorthResonance;
+            int pomButterWorthSampleRate;
 
-            var isMinLatency = int.TryParse(TBPursuitMinLatency.Text, out minLatency);
-            if (isMinLatency)
+            pursuitWindowsFilter.FilterByButterworth = CBPOMFilterButterworth.IsChecked.GetValueOrDefault();
+
+            var isPomButterWorthFrequency = double.TryParse(TBPOMButterWorthFrequency.Text.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out pomButterWorthFrequency);
+            if (isPomButterWorthFrequency)
             {
-                eyeMoveFinderConfig.MinLatency = minLatency;
+                pursuitWindowsFilter.ButterworthFrequency = pomButterWorthFrequency;
             }
             else
             {
-                MessageBox.Show($"Wrong value of 'Pursuit Move Min Latency'. Should be { eyeMoveFinderConfig.MinLatency.GetType().Name}.");
+                MessageBox.Show($"Wrong value of 'Pursuit Move Filter Frequency'. Should be { pursuitWindowsFilter.ButterworthFrequency.GetType().Name}.");
             }
 
-            var isApproxMultiplication = double.TryParse(TBPursuitApproxMultiplication.Text.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out approxMultiplication);
-            if (isApproxMultiplication)
+            var isPomButterWorthResonance = double.TryParse(TBPOMButterWorthResonance.Text.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out pomButterWorthResonance);
+            if (isPomButterWorthResonance)
             {
-                eyeMoveFinderConfig.Multiplication = approxMultiplication;
+                pursuitWindowsFilter.ButterworthResonance = pomButterWorthResonance;
             }
             else
             {
-                MessageBox.Show($"Wrong value of 'Pursuit Approx.Multiplication'. Should be { eyeMoveFinderConfig.Multiplication.GetType().Name}.");
+                MessageBox.Show($"Wrong value of 'Pursuit Move Filter Resonance'. Should be { pursuitWindowsFilter.ButterworthResonance.GetType().Name}.");
             }
 
-            return eyeMoveFinderConfig;
+            var isPomButterWorthSampleRate = int.TryParse(TBPOMButterWorthSampleRate.Text, out pomButterWorthSampleRate);
+            if (isPomButterWorthSampleRate)
+            {
+                pursuitWindowsFilter.ButterworthSampleRate = pomButterWorthSampleRate;
+            }
+            else
+            {
+                MessageBox.Show($"Wrong value of 'Pursuit Move Filter Sample Rate'. Should be { pursuitWindowsFilter.ButterworthSampleRate.GetType().Name}.");
+            }
+
+
+            return pursuitWindowsFilter;
         }
 
 

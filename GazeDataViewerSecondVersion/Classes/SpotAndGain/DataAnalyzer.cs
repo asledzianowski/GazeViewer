@@ -1,5 +1,6 @@
 ﻿using Altaxo.Calc.Regression;
 using GazeDataViewer.Classes.Denoise;
+using GazeDataViewer.Classes.EnumsAndStats;
 using GazeDataViewer.Classes.EyeMoveSearch;
 using GazeDataViewer.Classes.ParamCalculations;
 using GazeDataViewer.Classes.Saccade;
@@ -32,21 +33,46 @@ namespace GazeDataViewer.Classes.SpotAndGain
             var accuracyKspSpotValues = new List<KeyValuePair<double, double>>();
             var accuracyKspDiffValues = new List<KeyValuePair<double, double>>();
 
+
+            double sinMidStart;
+            double sinShortStart;
+
+            if (fileData.FileType == FileType.Maruniec)
+            {
+                sinMidStart = 37 * Consts.TimeScaleFactorStandard;
+                sinShortStart = 79 * Consts.TimeScaleFactorStandard;
+            }
+            else 
+            {
+                sinMidStart = 40 * Consts.TimeScaleFactorStandard;
+                sinShortStart = 74 * Consts.TimeScaleFactorStandard;
+            }
+
+            var unifiedTimeStamps = InputDataHelper.GetTimeStampsScaled(fileData.Time, fileData.FileType);
+
             for (int i = 0; i < fileData.Spot.Length; i++)
             {
                 var xSpot = fileData.Spot[i];
 
-
                 var sinLenght = 240D;
 
-                if (i > 1000 && i < 2400)
+                if(unifiedTimeStamps[i] >= sinMidStart && unifiedTimeStamps[i] <= sinShortStart)
                 {
                     sinLenght = 120D;
                 }
-                else if (i > 2400)
+                else if (unifiedTimeStamps[i] >= sinShortStart)
                 {
                     sinLenght = 30D;
                 }
+
+                //if (i > 1000 && i < 2400)
+                //{
+                //    sinLenght = 120D;
+                //}
+                //else if (i > 2400)
+                //{
+                //    sinLenght = 30D;
+                //}
 
                 
                 if(Math.Abs(xSpot - srod) > amp * 0.995D)
@@ -98,11 +124,11 @@ namespace GazeDataViewer.Classes.SpotAndGain
                 {
                     FilterByButterworth = true,
                     ButterworthPassType = FilterButterworth.PassType.Lowpass,
-                    ButterworthFrequency = 1,
+                    ButterworthFrequency = 3,
                     ButterworthResonance = 1,
                     ButterworthSampleRate = 40
                 };
-                var filteredControlWindow = FilterController.FilterByButterworth(filterConfig, controlWindow.ToArray());
+                var filteredControlWindow = controlWindow;// FilterController.FilterByButterworth(filterConfig, controlWindow.ToArray());
 
                 var filteredWindowItems = new Dictionary<double, double>();
                 for(int g = 0; g < filteredControlWindow.Count(); g++)
@@ -267,48 +293,6 @@ namespace GazeDataViewer.Classes.SpotAndGain
             return acc;
 
         }
-
-        public static Dictionary<double, double> GetApproxEyeSinusoidForPursuitSearch(SpotGazeFileData fileData, CalcConfig calcConfig, double spotEyeGain)
-        {
-            //var spotAvg = fileData.Spot.Average();
-            //var spotAtAvg = new List<SpotMove>();
-            //var spotTrack = fileData.Spot.ToList();
-            /////var spotMoveStartIndex = spotTrack.IndexOf(spotTrack.FirstOrDefault(x => x != 0));
-
-            var data = fileData; // InputDataHelper.CutData(fileData, spotMoveStartIndex, fileData.Spot.Length - spotMoveStartIndex);
-            var latency = calcConfig.PursuitMoveFinderConfig.MinLatency;
-            var approximations = new Dictionary<double, double>();
-            for(int i = latency; i < data.Spot.Count(); i++)
-            {
-                double? appVal = null;
-                if (data.Spot[i - latency] != 0)
-                {
-                    var originalVal = data.Spot[i - latency];
-                    appVal = originalVal * spotEyeGain; //PursuitMoveHelper.GetSinusoideApproximation(originalVal);
-                    appVal = appVal * calcConfig.PursuitMoveFinderConfig.Multiplication;
-                }
-
-                
-                if (appVal != null && i < data.TimeDeltas.Count() - latency)
-                {
-                    approximations.Add(data.TimeDeltas[i], appVal.GetValueOrDefault());
-                }
-                //else
-                //{ 
-                //    //var randomVal = Convert.ToDouble(new Random().Next(-1, 2)); //min + new Random().NextDouble() * (max - min);
-                //    //if(randomVal != 0)
-                //    //{
-                //    //    randomVal = randomVal / 10;
-                //    //}
-                //    approximations.Add(data.TimeDeltas[i], 0);
-                //}
-                
-            }
-
-            return approximations;
-        }
-
-       
 
         public static double CountPursoitGain(double[] eye, double[] spot)
         {
