@@ -17,7 +17,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
     {
 
 
-        public static PursuitGainCalculations CountPursuitParameters(SpotGazeFileData fileData)
+        public static PursuitGainCalculations CountPursuitParameters(SpotGazeFileData fileData, FiltersConfig filterConfig)
         {
             var mncal = fileData.Spot.Min();
             var mxcal = fileData.Spot.Max();
@@ -120,32 +120,36 @@ namespace GazeDataViewer.Classes.SpotAndGain
                 }
 
 
-                var filterConfig = new FiltersConfig
+                //var filterConfig = new FiltersConfig
+                //{
+                //    FilterByButterworth = true,
+                //    ButterworthPassType = FilterButterworth.PassType.Lowpass,
+                //    ButterworthFrequency = 3,
+                //    ButterworthResonance = 1,
+                //    ButterworthSampleRate = 40
+                //};
+
+                if (filterConfig.FilterByButterworth)
                 {
-                    FilterByButterworth = true,
-                    ButterworthPassType = FilterButterworth.PassType.Lowpass,
-                    ButterworthFrequency = 3,
-                    ButterworthResonance = 1,
-                    ButterworthSampleRate = 40
-                };
-                var filteredControlWindow = controlWindow;// FilterController.FilterByButterworth(filterConfig, controlWindow.ToArray());
+                    controlWindow = FilterController.FilterByButterworth(filterConfig, controlWindow.ToArray()).ToList();
+                }
 
                 var filteredWindowItems = new Dictionary<double, double>();
-                for(int g = 0; g < filteredControlWindow.Count(); g++)
+                for(int g = 0; g < controlWindow.Count(); g++)
                 {
-                    filteredWindowItems.Add(controlTimeDeltas[g], filteredControlWindow[g]);
+                    filteredWindowItems.Add(controlTimeDeltas[g], controlWindow[g]);
                 }
                 filteredControlWindows.Add(filteredWindowItems);
 
                 double eyeValue;
                 if (isPositive)
                 {
-                    eyeValue = filteredControlWindow.Average(); //Max();
+                    eyeValue = controlWindow.Average(); //Max();
                     isPositive = false;
                 }
                 else
                 {
-                    eyeValue = filteredControlWindow.Average(); //Min();
+                    eyeValue = controlWindow.Average(); //Min();
                     isPositive = true;
                 }
 

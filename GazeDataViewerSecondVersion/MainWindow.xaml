@@ -402,12 +402,13 @@
                             </Expander>
                         </GroupBox>
 
-                        <GroupBox Header="Pursuit" Name="GBPursuit" HorizontalAlignment="Left" Margin="0,5,0,0" IsEnabled="False"
+                        <GroupBox Header="Pursuit Move" Name="GBPursuit" HorizontalAlignment="Left" Margin="0,5,0,0" IsEnabled="False"
                          VerticalAlignment="Top" Height="Auto" Width="Auto" >
 
-                            <Expander Name="ExpanderPursuit" Header="Pursuit Approximation Settings" Expanded="Expander_Expanded" Collapsed="Expander_Collapsed">
+                            <Expander Name="ExpanderPursuit" Header="Control Windows Settings" Expanded="Expander_Expanded" Collapsed="Expander_Collapsed">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
+                                       
                                         <ColumnDefinition Width="100"/>
                                         <ColumnDefinition Width="44"/>
                                         <ColumnDefinition Width="100"/>
@@ -423,18 +424,21 @@
 
                                     </Grid.RowDefinitions>
 
-                                    <Label Grid.Column="0" Grid.Row="0" Content="Butterworth:" HorizontalAlignment="Right" ></Label>
-                                    <CheckBox Grid.Column="1" Grid.Row="0" Name="CBPOMFilterButterworth" IsChecked="False" VerticalAlignment="Center" HorizontalAlignment="Center"></CheckBox>
+                                    <Label Grid.Column="0" Grid.Row="0" Content="Show Windows:" HorizontalAlignment="Right" ></Label>
+                                    <CheckBox Grid.Column="1" Grid.Row="0" Name="CBPOMShowWindows" IsChecked="True" VerticalAlignment="Center" HorizontalAlignment="Center"></CheckBox>
+
+                                    <Label Grid.Column="0" Grid.Row="1" Content="Filter:" HorizontalAlignment="Right" ></Label>
+                                    <CheckBox Grid.Column="1" Grid.Row="1" Name="CBPOMFilterButterworth" IsChecked="False" VerticalAlignment="Center" HorizontalAlignment="Center"></CheckBox>
 
 
-                                    <Label Grid.Column="2" Grid.Row="0" Content="Frequency:" HorizontalAlignment="Right"></Label>
-                                    <TextBox Grid.Column="3" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="3" PreviewTextInput="DecimalValidationTextBox" 
+                                    <Label Grid.Column="2" Grid.Row="1" Content="Frequency:" HorizontalAlignment="Right"></Label>
+                                    <TextBox Grid.Column="3" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="3" PreviewTextInput="DecimalValidationTextBox" 
                                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBPOMButterWorthFrequency"></TextBox>
-                                    <Label Grid.Column="4" Grid.Row="0" Content="Sample Rate:" HorizontalAlignment="Right"></Label>
-                                    <TextBox Grid.Column="5" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="40" PreviewTextInput="NumberValidationTextBox" 
+                                    <Label Grid.Column="4" Grid.Row="1" Content="Sample Rate:" HorizontalAlignment="Right"></Label>
+                                    <TextBox Grid.Column="5" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="40" PreviewTextInput="NumberValidationTextBox" 
                                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBPOMButterWorthSampleRate"></TextBox>
-                                    <Label Grid.Column="6" Grid.Row="0" Content="Resonance:" HorizontalAlignment="Right"></Label>
-                                    <TextBox Grid.Column="7" Grid.Row="0" Width="44" HorizontalAlignment="Left" Text="1" PreviewTextInput="DecimalValidationTextBox" 
+                                    <Label Grid.Column="6" Grid.Row="1" Content="Resonance:" HorizontalAlignment="Right"></Label>
+                                    <TextBox Grid.Column="7" Grid.Row="1" Width="44" HorizontalAlignment="Left" Text="1" PreviewTextInput="DecimalValidationTextBox" 
                                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Name="TBPOMButterWorthResonance"></TextBox>
                                 </Grid>
                               </Expander>
