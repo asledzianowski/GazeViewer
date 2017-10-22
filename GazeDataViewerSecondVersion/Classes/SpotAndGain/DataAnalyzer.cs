@@ -33,19 +33,29 @@ namespace GazeDataViewer.Classes.SpotAndGain
             var accuracyKspSpotValues = new List<KeyValuePair<double, double>>();
             var accuracyKspDiffValues = new List<KeyValuePair<double, double>>();
 
-
+            double sinLongStart;
             double sinMidStart;
             double sinShortStart;
+            double sinLongEnd;
+            double sinMidEnd;
+            double sinShortEnd;
 
             if (fileData.FileType == FileType.Maruniec)
             {
+                // maruniec do zrobienia
                 sinMidStart = 37 * Consts.TimeScaleFactorStandard;
                 sinShortStart = 79 * Consts.TimeScaleFactorStandard;
             }
             else 
             {
+                sinLongStart = 12 * Consts.TimeScaleFactorStandard;
+                sinLongEnd = 32 * Consts.TimeScaleFactorStandard;
+
                 sinMidStart = 40 * Consts.TimeScaleFactorStandard;
-                sinShortStart = 74 * Consts.TimeScaleFactorStandard;
+                sinMidEnd = 68 * Consts.TimeScaleFactorStandard;
+
+                sinShortStart = 77 * Consts.TimeScaleFactorStandard;
+                sinShortEnd = 90 * Consts.TimeScaleFactorStandard;
             }
 
             var unifiedTimeStamps = InputDataHelper.GetTimeStampsScaled(fileData.Time, fileData.FileType);
@@ -65,15 +75,6 @@ namespace GazeDataViewer.Classes.SpotAndGain
                     sinLenght = 30D;
                 }
 
-                //if (i > 1000 && i < 2400)
-                //{
-                //    sinLenght = 120D;
-                //}
-                //else if (i > 2400)
-                //{
-                //    sinLenght = 30D;
-                //}
-
                 
                 if(Math.Abs(xSpot - srod) > amp * 0.995D)
                 {
@@ -87,6 +88,21 @@ namespace GazeDataViewer.Classes.SpotAndGain
                 }
             }
 
+            //int newStartIndex = kspIndexes[0].Value;
+            //int newEndIndex;
+            //var longSin = kspIndexes.Where(x => x.Key == 240);
+            //for(int h = 0; h < longSin.Count(); h++)
+            //{
+            //    var currIndx = kspIndexes[h].Value;
+            //    var nextIndx = kspIndexes[h + 1].Value;
+            //    if ((nextIndx - currIndx) > 2)
+            //    {
+            //        newStartIndex = h;
+            //        break;
+            //    }
+            //}
+
+            //kspIndexes = kspIndexes.Skip(newStartIndex).ToList();
             var kspEyeValues= new List<double>();
             var kspSpotValues = new List<double>();
             
@@ -118,16 +134,6 @@ namespace GazeDataViewer.Classes.SpotAndGain
                     controlWindow = fileData.Eye.Skip(index).Take(controlWindowLength).ToList();
                     controlTimeDeltas = fileData.TimeDeltas.Skip(index).Take(controlWindowLength).ToList();
                 }
-
-
-                //var filterConfig = new FiltersConfig
-                //{
-                //    FilterByButterworth = true,
-                //    ButterworthPassType = FilterButterworth.PassType.Lowpass,
-                //    ButterworthFrequency = 3,
-                //    ButterworthResonance = 1,
-                //    ButterworthSampleRate = 40
-                //};
 
                 if (filterConfig.FilterByButterworth)
                 {
@@ -216,7 +222,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
             {
                 var longSinW1 = accuracyKspDiffValues.Where(x => x.Key == 240D).Select(x => x.Value).Sum();
                 var longSinW2 = accuracyKspSpotValues.Where(x => x.Key == 240D).Select(x => x.Value).Sum();
-                longSinAcc = 1D - longSinW1 / longSinW2;
+                longSinAcc = 1D - (longSinW1 / longSinW2);
             }
 
             var midSinAcc = new double?();
@@ -224,7 +230,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
             {
                 var midSinW1 = accuracyKspDiffValues.Where(x => x.Key == 120D).Select(x => x.Value).Sum();
                 var midSinW2 = accuracyKspSpotValues.Where(x => x.Key == 120D).Select(x => x.Value).Sum();
-                midSinAcc = 1D - midSinW1 / midSinW2;
+                midSinAcc = 1D - (midSinW1 / midSinW2);
             }
 
 
@@ -233,7 +239,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
             {
                 var shortSinW1 = accuracyKspDiffValues.Where(x => x.Key == 30D).Select(x => x.Value).Sum();
                 var shortSinW2 = accuracyKspSpotValues.Where(x => x.Key == 30D).Select(x => x.Value).Sum();
-                shortSinAcc = 1D - shortSinW1 / shortSinW2;
+                shortSinAcc = 1D - (shortSinW1 / shortSinW2);
             }
             else
             {

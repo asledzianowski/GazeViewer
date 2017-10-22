@@ -71,6 +71,8 @@ namespace GazeDataViewer.Classes.AntiSaccade
                     EyeStartIndex = antiSaccadeStartIndex,
                     EyeStartTime = results.TimeDeltas[antiSaccadeStartIndex],
                     EyeStartCoord = results.EyeCoords[antiSaccadeStartIndex],
+                    ControlAmpTestValue = controlAmpTestValue,
+                    MinLengthTestValue = minLengthTestValue,
 
                     IsEndFound = isEndFound,
                     EyeEndIndex = antiSaccadeEndIndex,

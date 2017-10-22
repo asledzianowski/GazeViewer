@@ -172,11 +172,13 @@ namespace GazeDataViewer.Classes.DataAndLog
 
 
         public static string GetCsvOutput(bool addHeader, List<EyeMoveCalculation> saccadeCalculations, 
-            List<EyeMoveCalculation> antiSaccadeCalculations, CalcConfig config, FiltersConfig filtersConfig)
+            List<EyeMoveCalculation> antiSaccadeCalculations, EyeMoveCalculation pursuitMoveCalculations, CalcConfig config, FiltersConfig filtersConfig)
         {
             string csvDelimiter = " "; //"\t";
             var sb = new StringBuilder();
 
+            sb.Append("Saccades:");
+            sb.Append(Environment.NewLine);
             if (addHeader)
             {
                 sb.Append("ID" + csvDelimiter);
@@ -191,11 +193,7 @@ namespace GazeDataViewer.Classes.DataAndLog
                 sb.Append("Gain" + Environment.NewLine);
             }
 
-            var allOutputItems = new List<EyeMoveCalculation>();
-            allOutputItems.AddRange(saccadeCalculations);
-            allOutputItems.AddRange(antiSaccadeCalculations);
-
-            foreach (var outputItem in allOutputItems)
+            foreach (var outputItem in saccadeCalculations)
             {
                 sb.Append(outputItem.EyeMove.Id + csvDelimiter);
                 sb.Append(outputItem.EyeMove.IsFirstMove + csvDelimiter);
@@ -210,6 +208,63 @@ namespace GazeDataViewer.Classes.DataAndLog
                 sb.Append(Environment.NewLine);
             }
 
+            sb.Append(Environment.NewLine);
+            sb.Append(Environment.NewLine);
+            sb.Append("AntiSaccades:");
+            sb.Append(Environment.NewLine);
+            if (addHeader)
+            {
+                sb.Append("ID" + csvDelimiter);
+                sb.Append("FromFixationPoint" + csvDelimiter);
+                sb.Append("EyeMoveType" + csvDelimiter);
+                sb.Append("Latency" + csvDelimiter);
+                sb.Append("Duration" + csvDelimiter);
+                sb.Append("Distance" + csvDelimiter);
+                sb.Append("Amplitude" + csvDelimiter);
+                sb.Append("AvgVelocity" + csvDelimiter);
+                sb.Append("MaxVelocity" + csvDelimiter);
+                sb.Append("Gain" + Environment.NewLine);
+            }
+
+            foreach (var outputItem in antiSaccadeCalculations)
+            {
+                sb.Append(outputItem.EyeMove.Id + csvDelimiter);
+                sb.Append(outputItem.EyeMove.IsFirstMove + csvDelimiter);
+                sb.Append(outputItem.EyeMove.EyeMoveType + csvDelimiter);
+                sb.Append(outputItem.Latency + csvDelimiter);
+                sb.Append(outputItem.Duration + csvDelimiter);
+                sb.Append(outputItem.Distance + csvDelimiter);
+                sb.Append(outputItem.Amplitude + csvDelimiter);
+                sb.Append(outputItem.AvgVelocity + csvDelimiter);
+                sb.Append(outputItem.MaxVelocity + csvDelimiter);
+                sb.Append(outputItem.Gain + csvDelimiter);
+                sb.Append(Environment.NewLine);
+            }
+
+            sb.Append(Environment.NewLine);
+            sb.Append(Environment.NewLine);
+            sb.Append("Pursuit:");
+            sb.Append(Environment.NewLine);
+
+            if (addHeader)
+            {
+                sb.Append("Long Sin Gain" + csvDelimiter);
+                sb.Append("Mid Sin Gain" + csvDelimiter);
+                sb.Append("Short Sin Gain" + csvDelimiter);
+                sb.Append("Long Sin Accuracy" + csvDelimiter);
+                sb.Append("Mid Sin Accuracy" + csvDelimiter);
+                sb.Append("Short Sin Accuracy" + csvDelimiter);
+                sb.Append(Environment.NewLine);
+            }
+
+
+            sb.Append(pursuitMoveCalculations.PursuitLongSinGain + csvDelimiter);
+            sb.Append(pursuitMoveCalculations.PursuitMidSinGain + csvDelimiter);
+            sb.Append(pursuitMoveCalculations.PursuitShortSinGain + csvDelimiter);
+            sb.Append(pursuitMoveCalculations.PursuitLongSinAccuracy + csvDelimiter);
+            sb.Append(pursuitMoveCalculations.PursuitMidSinAccuracy+ csvDelimiter);
+            sb.Append(pursuitMoveCalculations.PursuitShortSinAccuracy+ csvDelimiter);
+            sb.Append(Environment.NewLine);
 
             sb.Append(Environment.NewLine);
             sb.Append(Environment.NewLine);
@@ -218,6 +273,8 @@ namespace GazeDataViewer.Classes.DataAndLog
             sb.Append($"Saccades: {saccadeCalculations.Count}");
             sb.Append(Environment.NewLine);
             sb.Append($"AntiSaccades: {antiSaccadeCalculations.Count}");
+            sb.Append(Environment.NewLine);
+            sb.Append($"Inorrect AntiSaccades: {19 - antiSaccadeCalculations.Count}");
 
             sb.Append(Environment.NewLine);
             sb.Append(Environment.NewLine);
@@ -244,6 +301,8 @@ namespace GazeDataViewer.Classes.DataAndLog
             sb.Append(Environment.NewLine);
             sb.Append($"Min.Inhibition: {csvDelimiter} {config.SaccadeMoveFinderConfig.MinInhibition}");
             sb.Append(Environment.NewLine);
+            sb.Append($"Min.Amplitude: {csvDelimiter} {config.AntiSaccadeMoveFinderConfig.MinAmp}");
+            sb.Append(Environment.NewLine);
             sb.Append($"Max.Amplitude: {csvDelimiter} {config.AntiSaccadeMoveFinderConfig.MaxAmp}");
             sb.Append(Environment.NewLine);
             sb.Append(Environment.NewLine);
@@ -263,6 +322,8 @@ namespace GazeDataViewer.Classes.DataAndLog
             sb.Append($"Move Min.Length: {csvDelimiter} {config.AntiSaccadeMoveFinderConfig.MinLength}");
             sb.Append(Environment.NewLine);
             sb.Append($"Min.Inhibition: {csvDelimiter} {config.AntiSaccadeMoveFinderConfig.MinInhibition}");
+            sb.Append(Environment.NewLine);
+            sb.Append($"Min.Amplitude: {csvDelimiter} {config.AntiSaccadeMoveFinderConfig.MinAmp}");
             sb.Append(Environment.NewLine);
             sb.Append($"Max.Amplitude: {csvDelimiter} {config.AntiSaccadeMoveFinderConfig.MaxAmp}");
             sb.Append(Environment.NewLine);
@@ -390,9 +451,9 @@ namespace GazeDataViewer.Classes.DataAndLog
                 {
                     if(filePath.EndsWith("result_out.txt"))
                     {
-                       var csvData = fileDataProcessor.CalculateFileData(filePath, timeColumnIndex, eyeColumnIndex, spotColumnIndex, calcConfig, filtersConfig);
-                       sb.Append(directoryPath + Environment.NewLine);
-                       sb.Append(csvData);
+                       //var csvData = fileDataProcessor.CalculateFileData(filePath, timeColumnIndex, eyeColumnIndex, spotColumnIndex, calcConfig, filtersConfig);
+                       //sb.Append(directoryPath + Environment.NewLine);
+                       //sb.Append(csvData);
                     }
                 }
             }

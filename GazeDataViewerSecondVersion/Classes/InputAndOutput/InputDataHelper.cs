@@ -76,18 +76,30 @@ namespace GazeDataViewer.Classes
             var lines = fileText.Split('\n');
 
             var outputData = new SpotGazeFileData();
-            outputData.FileType = GetFileType(filePath);
             outputData.Time = new int[lines.Length - 1];
             outputData.Eye = new double[lines.Length - 1];
             outputData.Spot = new double[lines.Length - 1];
 
             var isFileRead = true;
 
+            outputData.FileType = GetFileType(filePath);
+            
+            // test if JazzNovo
+            DateTime testOut;
+            var isDate = DateTime.TryParse(lines[0].Split(' ')[0], out testOut);
+            if (isDate)
+            {
+                lines = FixJazzNovoFormat(lines);
+                outputData.FileType = FileType.JazzNovo;
+            }
+
             for (int i=0; i < lines.Length-1; i++)
             {
                 var lineColumns = lines[i].Split(' '); //;
+
                 if (lineColumns.Length >= 4) //4
                 {
+                    
                     var isTimeConverted = int.TryParse(lineColumns[timeColumnIndex], out outputData.Time[i]);
                     //var isTimeConverted = DateTime.TryParseExact(lineColumns[0], "yyyy-MM-dd HH:mm:ss.FFF",
                       //                  CultureInfo.InvariantCulture, DateTimeStyles.None, out outputData.Time[i]);
@@ -134,6 +146,32 @@ namespace GazeDataViewer.Classes
                 return null;
             }
         }
+
+        public static string[] FixJazzNovoFormat(string[] lines)
+        {
+            var output = new List<string>();
+
+            var firstLine = lines[0].Split(';');
+            var firstTime = DateTime.Parse(firstLine[0]).TimeOfDay;
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                var currentLine = lines[i].Split(';');
+                if (currentLine.Length > 1)
+                {
+                    var currentTime = DateTime.Parse(currentLine[0]).TimeOfDay;
+
+                    var span = currentTime.Subtract(firstTime);
+                    currentLine[0] = span.Milliseconds.ToString();
+                    var lineString = string.Join(";", currentLine);
+                    lineString = lineString.Replace(';', ' ');
+                    output.Add(lineString);
+                }
+            }
+
+            return output.ToArray();
+        }
+
 
         public static double[] GetUnifiedTimeDeltas(int[] timeStamps, FileType fileType)
         {

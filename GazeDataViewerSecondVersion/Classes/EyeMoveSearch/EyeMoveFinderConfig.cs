@@ -14,6 +14,7 @@ namespace GazeDataViewer.Classes.EyeMoveSearch
         public int MoveSearchWindowLength { get; set; }
         public double MinLength { get; set; }
         public int MinInhibition { get; set; }
+        public int MinAmp { get; set; }
         public int MaxAmp { get; set; }
         public double ControlAmpDivider { get; set; }
         public double Multiplication { get; set; }

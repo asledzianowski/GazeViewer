@@ -100,26 +100,14 @@ namespace GazeDataViewer
 
                 double? startTimeDelta = null;
                 double? endTimeDelta = null;
-
-                //if (this.FileType == FileType.Maruniec)
-                //{
-                //    startTimeDelta = FileData.TimeDeltas[1];
-                //    endTimeDelta = FileData.TimeDeltas[FileData.TimeDeltas.Count() - 1];
-
-                //    startTimeDelta = Math.Round(startTimeDelta.GetValueOrDefault(), 2);
-                //        //InputDataHelper.ScaleByTimeFactor(startTimeDelta.GetValueOrDefault(), 3, false);
-                //    endTimeDelta = Math.Round(endTimeDelta.GetValueOrDefault(), 2);
-                //    //endTimeDelta = InputDataHelper.GetScaledTimeFromIndex(FileData, FileData.TimeDeltas.Count() - 1);
-
-                //}
                
+                //Signal start/end to scaled time
                 startTimeDelta = InputDataHelper.GetScaledTimeFromIndex(FileData, 1);
                 endTimeDelta = InputDataHelper.GetScaledTimeFromIndex(FileData, FileData.TimeDeltas.Count() - 1);
-                
-
                 TBStartRec.Text = startTimeDelta.GetValueOrDefault().ToString();
                 TBEndRec.Text = endTimeDelta.GetValueOrDefault().ToString();
 
+                CalculateAndSetParametersFromFileData(this.FileData);
 
                 var calcConfig = GetCurrentCalcConfig();
                 var dataClone = InputDataHelper.CloneFileData(this.FileData);
@@ -129,6 +117,35 @@ namespace GazeDataViewer
             else
             {
                 MessageBox.Show("Unable to process the file. Check column order or file text.");
+            }
+        }
+
+
+        //Frequency, min latency and duration calculation
+        private void CalculateAndSetParametersFromFileData(SpotGazeFileData fileData)
+        {
+            var frequencyCheckStart = InputDataHelper.GetIndexFromScaledTime(fileData, 8);
+            var frequencyCheckEnd = InputDataHelper.GetIndexFromScaledTime(fileData, 36);
+            if (frequencyCheckStart != null && frequencyCheckEnd != null)
+            {
+                var frequencyCheckFrameCount = frequencyCheckEnd - frequencyCheckStart;
+                var calculatedFrequency = frequencyCheckFrameCount.GetValueOrDefault() / 28;
+                TBFrequency.Text = calculatedFrequency.ToString();
+
+                var saccMinLatency = calculatedFrequency / 10m; //100 ms
+                var saccMinDuration = calculatedFrequency / 20m; //50 ms
+                var antisaccMinLatency = calculatedFrequency / 4m; //250 ms
+                var antisaccMinDuration = calculatedFrequency / 6.666666666666667m; //150 ms
+
+                var saccMinLatencyRoundUp = Math.Ceiling(saccMinLatency);
+                var saccMinDurationRoundUp = Math.Ceiling(saccMinDuration);
+                var antisaccMinLatencyRoundUp = Math.Ceiling(antisaccMinLatency);
+                var antisaccMinDurationRoundUp = Math.Ceiling(antisaccMinDuration);
+
+                TBSaccMinLatency.Text = saccMinLatencyRoundUp.ToString();
+                TBSaccMinDuration.Text = saccMinDurationRoundUp.ToString();
+                TBAntiSaccMinLatency.Text = antisaccMinLatencyRoundUp.ToString();
+                TBAntiSaccMinDuration.Text = antisaccMinDurationRoundUp.ToString();
             }
         }
 
@@ -154,7 +171,7 @@ namespace GazeDataViewer
                 TBSavGoayPointsNum.Text = filterConfig.SavitzkyGolayNumberOfPoints.ToString();
             }
 
-            if (calcConfig.RecStart > 0 && calcConfig.RecEnd > 0 && calcConfig.RecEnd <= FileData.TimeDeltas.Count())
+            if (calcConfig.RecStart > 0 && calcConfig.RecEnd > 0 && calcConfig.RecEnd <= fileData.TimeDeltas.Count())
             {
                 if (filterConfig.SavitzkyGolayNumberOfPoints >= Math.Abs(calcConfig.RecEnd - calcConfig.RecStart))
                 {
@@ -268,14 +285,14 @@ namespace GazeDataViewer
 
                     this.PursuitMoveCalculations = new EyeMoveCalculation
                     {
-                        PursuitLongSinGain = longGain,
-                        PursuitMidSinGain = midGain,
-                        PursuitShortSinGain = shortGain,
-                        
+                        PursuitLongSinGain = Math.Round(longGain.GetValueOrDefault(), 2),
+                        PursuitMidSinGain = Math.Round(midGain.GetValueOrDefault(), 2),
+                        PursuitShortSinGain = Math.Round(shortGain.GetValueOrDefault(), 2),
 
-                        PursuitLongSinAccuracy = longAccuracy,
-                        PursuitMidSinAccuracy = midAccuracy,
-                        PursuitShortSinAccuracy = shortAccuracy,
+
+                        PursuitLongSinAccuracy = Math.Round(longAccuracy.GetValueOrDefault(), 2),
+                        PursuitMidSinAccuracy = Math.Round(midAccuracy.GetValueOrDefault(), 2),
+                        PursuitShortSinAccuracy = Math.Round(shortAccuracy.GetValueOrDefault(), 2)
                     };
                 }
 
@@ -316,10 +333,10 @@ namespace GazeDataViewer
             {
                 MessageBox.Show("Start rec must be > 0, end rec < rec length ");
 
-                var startTimeDelta = InputDataHelper.GetScaledTimeFromIndex(FileData, 1);
+                var startTimeDelta = InputDataHelper.GetScaledTimeFromIndex(fileData, 1);
                 TBStartRec.Text = startTimeDelta.GetValueOrDefault().ToString();
 
-                var endTimeDelta = InputDataHelper.GetScaledTimeFromIndex(FileData, FileData.TimeDeltas.Count() - 1);
+                var endTimeDelta = InputDataHelper.GetScaledTimeFromIndex(fileData, fileData.TimeDeltas.Count() - 1);
                 TBEndRec.Text = endTimeDelta.GetValueOrDefault().ToString();
             }
         }
@@ -356,7 +373,8 @@ namespace GazeDataViewer
                         if (eyeMove != null)
                         {
                             var saccParams = saccadeParamsCalcuator.CalculateSaccadeParams(eyeMove, eyeMove.EyeMoveType);
-                            if (saccParams.Amplitude <= calcConfig.SaccadeMoveFinderConfig.MaxAmp)
+                            if (saccParams.Amplitude >= calcConfig.SaccadeMoveFinderConfig.MinAmp &&
+                                saccParams.Amplitude <= calcConfig.SaccadeMoveFinderConfig.MaxAmp)
                             {
                                 SaccadePositions.Add(eyeMove);
                             }
@@ -368,7 +386,8 @@ namespace GazeDataViewer
                         if (eyeMove != null)
                         {
                             var antiSaccParams = saccadeParamsCalcuator.CalculateSaccadeParams(eyeMove, eyeMove.EyeMoveType);
-                            if (antiSaccParams.Amplitude <= calcConfig.AntiSaccadeMoveFinderConfig.MaxAmp)
+                            if (antiSaccParams.Amplitude >= calcConfig.AntiSaccadeMoveFinderConfig.MinAmp &&
+                                antiSaccParams.Amplitude <= calcConfig.AntiSaccadeMoveFinderConfig.MaxAmp)
                             {
                                 AntiSaccadePositions.Add(eyeMove);
                             }
@@ -778,6 +797,7 @@ namespace GazeDataViewer
             TBSaccSearchLength.Text = config.MoveSearchWindowLength.ToString();
             TBSaccControlLength.Text = config.ControlWindowLength.ToString();
             TBSaccControlAmpDivider.Text = config.ControlAmpDivider.ToString();
+            TBSaccMinAmp.Text = config.MinAmp.ToString();
             TBSaccMaxAmp.Text = config.MaxAmp.ToString();
         }
 
@@ -790,6 +810,7 @@ namespace GazeDataViewer
             TBAntiSaccSearchLength.Text = config.MoveSearchWindowLength.ToString();
             TBAntiSaccControlLength.Text = config.ControlWindowLength.ToString();
             TBAntiSaccControlAmpDivider.Text = config.ControlAmpDivider.ToString();
+            TBAntiSaccMinAmp.Text = config.MinAmp.ToString(); ;
             TBAntiSaccMaxAmp.Text = config.MaxAmp.ToString();
         }
 
@@ -1059,6 +1080,7 @@ namespace GazeDataViewer
             double controlAmpDivider;
             int minInhibition;
             int maxAmp;
+            int minAmp;
 
             var isMinLatency = int.TryParse(TBSaccMinLatency.Text, out minLatency);
             if (isMinLatency)
@@ -1130,6 +1152,17 @@ namespace GazeDataViewer
                 MessageBox.Show($"Wrong value of 'Saccade Min. Inhibition'. Should be { eyeMoveFinderConfig.MinInhibition.GetType().Name}.");
             }
 
+
+            var isMinAmp = int.TryParse(TBSaccMinAmp.Text, out minAmp);
+            if (isMinAmp)
+            {
+                eyeMoveFinderConfig.MinAmp = minAmp;
+            }
+            else
+            {
+                MessageBox.Show($"Wrong value of 'Saccade Min.Amplitude'. Should be { eyeMoveFinderConfig.MinAmp.GetType().Name}.");
+            }
+
             var isMaxAmp = int.TryParse(TBSaccMaxAmp.Text, out maxAmp);
             if (isMaxAmp)
             {
@@ -1154,6 +1187,7 @@ namespace GazeDataViewer
             double controlAmpDivider;
             int minInhibition;
             int maxAmp;
+            int minAmp;
 
             var isMinLatency = int.TryParse(TBAntiSaccMinLatency.Text, out minLatency);
             if (isMinLatency)
@@ -1224,6 +1258,18 @@ namespace GazeDataViewer
             {
                 MessageBox.Show($"Wrong value of 'AntiSaccade Min. Inhibition'. Should be { eyeMoveFinderConfig.MinInhibition.GetType().Name}.");
             }
+
+            var isMinAmp = int.TryParse(TBAntiSaccMinAmp.Text, out minAmp);
+            if (isMinAmp)
+            {
+                eyeMoveFinderConfig.MinAmp = minAmp;
+            }
+            else
+            {
+                MessageBox.Show($"Wrong value of 'AntiSaccade Min.Amplitude'. Should be { eyeMoveFinderConfig.MinAmp.GetType().Name}.");
+            }
+
+
             var isMaxAmp = int.TryParse(TBAntiSaccMaxAmp.Text, out maxAmp);
             if (isMaxAmp)
             {
@@ -1384,6 +1430,7 @@ namespace GazeDataViewer
 
         private void BtnAddEyeMove_Click(object sender, RoutedEventArgs e)
         {
+            var eyeMoveType = Enum.Parse(typeof(EyeMoveTypes), ComboAddEMType.SelectedValue.ToString());
             var spotStartTimeStamp = (double)ComboAddEMSpot.SelectedValue;
             var spot = SpotMovePositions.FirstOrDefault(x => x.SpotStartTimeStamp == spotStartTimeStamp);
             var spotIndex = SpotMovePositions.IndexOf(spot);
@@ -1422,6 +1469,7 @@ namespace GazeDataViewer
             {
                 Id = newId,
                 IsFirstMove = DataAnalyzer.IsEven(spotIndex),
+                EyeMoveType = (EyeMoveTypes)eyeMoveType,
                 IsStartFound = true,
                 EyeStartIndex = eyeStartIndex,
                 EyeStartCoord = SpotEyePoints.EyeCoords[eyeStartIndex],
@@ -1446,7 +1494,7 @@ namespace GazeDataViewer
 
             newEyeMove = EyeMoveSearchToolBox.CountTestValuesForEyeMove(newEyeMove, this.SpotEyePoints);
 
-            var eyeMoveType = Enum.Parse(typeof(EyeMoveTypes), ComboAddEMType.SelectedValue.ToString());
+           
 
             if (eyeMoveType.Equals(EyeMoveTypes.Saccade))
             {
@@ -1543,8 +1591,8 @@ namespace GazeDataViewer
             }
             var defaultFileName = LoadDataPathTextBox.Text.Replace("\result_out.txt", string.Empty);
             var dlg = new SaveFileDialog();
-            var fileName = Path.GetFileNameWithoutExtension(LoadDataPathTextBox.Text);
-            dlg.FileName = defaultFileName;
+            //var fileName = Path.GetFileNameWithoutExtension(LoadDataPathTextBox.Text);
+            dlg.FileName = Path.GetFileNameWithoutExtension(defaultFileName);
             dlg.DefaultExt = ".csv"; 
             dlg.Filter = "Text documents (.csv)|*.csv"; 
 
@@ -1555,7 +1603,7 @@ namespace GazeDataViewer
                 
                     var calcConfig = GetCurrentCalcConfig();
                     var filtersConfig = GetCurrentFilterConfig();
-                    var csvOutput = OutputHelper.GetCsvOutput(true, this.SaccadeCalculations, this.AntiSaccadeCalculations, 
+                    var csvOutput = OutputHelper.GetCsvOutput(true, this.SaccadeCalculations, this.AntiSaccadeCalculations, this.PursuitMoveCalculations,
                         calcConfig, filtersConfig);
                     OutputHelper.SaveText(filePath, csvOutput);
                 
@@ -1566,7 +1614,7 @@ namespace GazeDataViewer
         {
             var dlg = new SaveFileDialog();
             var defaultFileName = LoadDataPathTextBox.Text.Replace("\result_out.txt", string.Empty);
-            dlg.FileName = defaultFileName;
+            dlg.FileName = Path.GetFileNameWithoutExtension(defaultFileName);
             dlg.DefaultExt = ".jpg";
             dlg.Filter = "jpg files (.jpg)|*.jpg";
 
@@ -1598,6 +1646,7 @@ namespace GazeDataViewer
                 if(spotGazeTrackState != null)
                 {
                     this.GraphClearElements();
+                    this.FileData = spotGazeTrackState.FileData;
                     this.SetCalcConfigGUI(spotGazeTrackState.CalcConfig);
                     this.SetFilterConfigGUI(spotGazeTrackState.FiltersConfig);
                     this.SetSaccadeFinderConfigGUI(spotGazeTrackState.CalcConfig.SaccadeMoveFinderConfig);
@@ -1605,12 +1654,12 @@ namespace GazeDataViewer
                     this.SetPursuitFinderConfigGUI(spotGazeTrackState.CalcConfig.PursuitMoveFinderConfig);
                     this.SaccadePositions = spotGazeTrackState.SaccadePositions;
                     this.AntiSaccadePositions = spotGazeTrackState.AntiSaccadePositions;
-                    this.FileData = spotGazeTrackState.FileData;
                     this.SpotEyePoints = spotGazeTrackState.CurrentResults;
                     this.SpotMovePositions = spotGazeTrackState.SpotPositions;
                     this.SaccadeCalculations = spotGazeTrackState.SaccadeCalculations;
                     this.AntiSaccadeCalculations = spotGazeTrackState.AntiSaccadeCalculations;
 
+                    CalculateAndSetParametersFromFileData(this.FileData);
                     var fileItemsCount = spotGazeTrackState.CalcConfig.RecEnd - spotGazeTrackState.CalcConfig.RecStart;
                     var cutTimeDeltas = this.FileData.TimeDeltas.Skip(spotGazeTrackState.CalcConfig.RecStart).Take(fileItemsCount).ToArray();
                     var cutEyeCoords = this.FileData.Eye.Skip(spotGazeTrackState.CalcConfig.RecStart).Take(fileItemsCount).ToArray();
