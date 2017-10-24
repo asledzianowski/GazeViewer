@@ -48,11 +48,11 @@
                         VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
 
                     <Label Content="Eye Column:"></Label>
-                    <TextBox Name="TBEyeColumnIndex" Width="32" Height="20" Margin="0,0,0,0" Text="2" PreviewTextInput="NumberValidationTextBox"
+                    <TextBox Name="TBEyeColumnIndex" Width="32" Height="20" Margin="0,0,0,0" Text="1" PreviewTextInput="NumberValidationTextBox"
                         VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
 
                     <Label Content="Spot Column:"></Label>
-                    <TextBox Name="TBSpotColumnIndex" Width="32" Height="20" Margin="0,0,0,0" Text="3" PreviewTextInput="NumberValidationTextBox"
+                    <TextBox Name="TBSpotColumnIndex" Width="32" Height="20" Margin="0,0,0,0" Text="5" PreviewTextInput="NumberValidationTextBox"
                         VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                 </DockPanel>
                 

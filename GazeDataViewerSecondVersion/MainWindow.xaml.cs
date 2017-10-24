@@ -40,7 +40,7 @@ namespace GazeDataViewer
     /// </summary>
     public partial class MainWindow : Window
     {
-        FileType FileType { get; set; }
+        
         SpotGazeFileData FileData { get; set; }
         ResultData SpotEyePoints { get; set; }
         List<EyeMove> SaccadePositions { get; set; } = new List<EyeMove>();
@@ -63,7 +63,6 @@ namespace GazeDataViewer
             if (!string.IsNullOrEmpty(dialog.FileName) && InputDataHelper.IsAllowedDataFileExtention(dialog.FileName))
             {
                 LoadDataPathTextBox.Text = dialog.FileName;
-                this.FileType = InputDataHelper.GetFileType(dialog.FileName); 
                 LoadDataAndAnalyze(dialog.FileName);
             }
             else
@@ -93,6 +92,7 @@ namespace GazeDataViewer
             var spotColumnIndex = int.Parse(TBSpotColumnIndex.Text);
 
             var fileData = InputDataHelper.LoadDataForSpotAndGaze(eyeFilePath, timeColumnIndex, eyeColumnIndex, spotColumnIndex);
+ 
 
             if (fileData != null)
             {
@@ -107,7 +107,10 @@ namespace GazeDataViewer
                 TBStartRec.Text = startTimeDelta.GetValueOrDefault().ToString();
                 TBEndRec.Text = endTimeDelta.GetValueOrDefault().ToString();
 
-                CalculateAndSetParametersFromFileData(this.FileData);
+                if (fileData.FileType != FileType.JazzNovo)
+                {
+                    CalculateAndSetParametersFromFileData(this.FileData);
+                }
 
                 var calcConfig = GetCurrentCalcConfig();
                 var dataClone = InputDataHelper.CloneFileData(this.FileData);
@@ -199,127 +202,16 @@ namespace GazeDataViewer
                 this.SaccadePositions.Clear();
                 this.AntiSaccadePositions.Clear();
                 GraphClearElements();
-                ApplyEyeSpotSinusoids(fileData.TimeDeltas, fileData.Eye, fileData.Spot);
+                ApplyEyeSpotSinusoids(fileData.TimeDeltas, fileData.Eye, fileData.Spot, fileData.FileType);
 
-                //pursuit end timestamp 9231000 / initial index 5850
-                // moruniec end 92310
-
-                int pursuitEndStaticTag;
-                int saccadeStartStaticTag;
-
-                if (this.FileType == FileType.Maruniec)
+               
+                if(fileData.FileType == FileType.Brudno || fileData.FileType == FileType.Maruniec)
                 {
-                    pursuitEndStaticTag = Consts.PursuitEndTimeMaruniec;
-                    saccadeStartStaticTag = Consts.SaccadeStartTimeMaruniec;
+                    ProcessCompoundSignal(fileData, calcConfig);
                 }
                 else
                 {
-                    pursuitEndStaticTag = Consts.PursuitEndTimeStandard;
-                    saccadeStartStaticTag = Consts.SaccadeStartTimeStandard;
-                }
-
-                var pursuitEndTime = fileData.Time.FirstOrDefault(x => x >= pursuitEndStaticTag);
-                if (pursuitEndTime == 0)
-                {
-                    pursuitEndTime = fileData.Time.LastOrDefault();
-                }
-
-                //Calibration end timestamp 10149000
-                var saccadesStartTime = fileData.Time.FirstOrDefault(x => x >= saccadeStartStaticTag);
-                if(saccadesStartTime == 0)
-                {
-                    saccadesStartTime = fileData.Time.LastOrDefault();
-                }
-
-                var pursuitEndIndex = Array.IndexOf(fileData.Time, pursuitEndTime);
-                var saccadesStartIndex = Array.IndexOf(fileData.Time, saccadesStartTime); //1
-
-                var pursuitMovesBlock = InputDataHelper.CutData(fileData, 0, pursuitEndIndex - 1);
-                var saccadesMovesBlock = InputDataHelper.CutData(fileData, saccadesStartIndex, (fileData.Spot.Length) - saccadesStartIndex);
-
-                if (pursuitMovesBlock.Spot.Length > 0)
-                {
-                    var pursuitWindowsFilterConfig = GetCurrentPursuitFilterConfig();
-                    var pursuitCalculations = DataAnalyzer.CountPursuitParameters(pursuitMovesBlock, pursuitWindowsFilterConfig);
-                    if (CBPOMShowWindows.IsChecked == true)
-                    {
-                        ApplyPursuitFilteredWindows(pursuitCalculations.FilteredControlWindows);
-                    }
-
-                    var longGain = new double?();
-                    if(pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Long").Value.HasValue)
-                    {
-                        longGain = pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Long").Value;
-                    }
-                    
-                    var midGain = new double?();
-                    if (pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Mid").Value.HasValue)
-                    {
-                        midGain = pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Mid").Value.GetValueOrDefault();
-                    }
-                    
-                    var shortGain = new double?();
-                    if (pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Short").Value.HasValue)
-                    {
-                        shortGain = pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Short").Value.GetValueOrDefault();
-                    }
-
-                    var longAccuracy = new double?();
-                    if (pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Long").Value.HasValue)
-                    {
-                        longAccuracy = pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Long").Value;
-                    }
-
-                    var midAccuracy = new double?();
-                    if (pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Mid").Value.HasValue)
-                    {
-                        midAccuracy = pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Mid").Value.GetValueOrDefault();
-                    }
-
-                    var shortAccuracy = new double?();
-                    if (pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Short").Value.HasValue)
-                    {
-                        shortAccuracy = pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Short").Value.GetValueOrDefault();
-                    }
-
-
-                    this.PursuitMoveCalculations = new EyeMoveCalculation
-                    {
-                        PursuitLongSinGain = Math.Round(longGain.GetValueOrDefault(), 2),
-                        PursuitMidSinGain = Math.Round(midGain.GetValueOrDefault(), 2),
-                        PursuitShortSinGain = Math.Round(shortGain.GetValueOrDefault(), 2),
-
-
-                        PursuitLongSinAccuracy = Math.Round(longAccuracy.GetValueOrDefault(), 2),
-                        PursuitMidSinAccuracy = Math.Round(midAccuracy.GetValueOrDefault(), 2),
-                        PursuitShortSinAccuracy = Math.Round(shortAccuracy.GetValueOrDefault(), 2)
-                    };
-                }
-
-                if (saccadesMovesBlock.Spot.Length > 0)
-                {
-                    
-                    SpotEyePoints = DataAnalyzer.FindSpotEyePointsForSaccadeAntiSaccadeSearch(saccadesMovesBlock, calcConfig);
-
-
-                    var saccadeSpotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.Saccade, this.FileType);
-                    var antiSaccadeSpotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.AntiSaccade, this.FileType);
-
-                    this.ApplySpotPointMarkers(this.SpotEyePoints);
-
-                    //var fakeSacc = SpotEyePoints.SpotMoves.Select(x => x.SpotStartIndex).ToList();
-                    PlotSaccAntiSaccData(saccadeSpotBlock, SpotEyePoints, calcConfig, EyeMoveTypes.Saccade);
-                    PlotSaccAntiSaccData(antiSaccadeSpotBlock, SpotEyePoints, calcConfig, EyeMoveTypes.AntiSaccade);
-                   
-                    if(saccadeSpotBlock.Count > 0 || antiSaccadeSpotBlock.Count > 0 )
-                    {
-                        GBEyeMoves.IsEnabled = true;
-                    }
-                    else
-                    {
-                        GBEyeMoves.IsEnabled = false;
-                    }
-        
+                    ProcessSingleTypeSignal(fileData, calcConfig);
                 }
               
                
@@ -341,9 +233,183 @@ namespace GazeDataViewer
             }
         }
 
+        private void ProcessSingleTypeSignal(SpotGazeFileData fileData, CalcConfig calcConfig)
+        {
+            var pomResult = MessageBox.Show("Process signal for POM?", "Eye Move Choice", MessageBoxButton.YesNo);
+            if (pomResult  == MessageBoxResult.Yes)
+            {
+                var pursuitWindowsFilterConfig = GetCurrentPursuitFilterConfig();
+                var pursuitCalculations = DataAnalyzer.CountSingleTypeSignalPursuitParameters(fileData, pursuitWindowsFilterConfig);
+
+                if (CBPOMShowWindows.IsChecked == true)
+                {
+                    ApplyPursuitFilteredWindows(pursuitCalculations.FilteredControlWindows);
+                }
+
+                this.PursuitMoveCalculations = new EyeMoveCalculation
+                {
+                    PursuitLongSinGain = pursuitCalculations.Gains.FirstOrDefault().Value,
+                    PursuitLongSinAccuracy = pursuitCalculations.Accuracies.FirstOrDefault().Value
+
+                };
+
+            }
+            else if (pomResult == MessageBoxResult.No)
+            {
+                var saccResult = MessageBox.Show("Process signal for Saccades?", "Eye Move Choice", MessageBoxButton.YesNo);
+
+                SpotEyePoints = DataAnalyzer.FindSpotEyePointsForSaccadeAntiSaccadeSearch(fileData, calcConfig);
+                this.ApplySpotPointMarkers(this.SpotEyePoints);
+                List<int> spotBlock;
+
+                if (saccResult  == MessageBoxResult.Yes)
+                {
+                    spotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.Saccade, fileData.FileType);   
+                    FindAndPlotSaccAntiSacc(spotBlock, SpotEyePoints, calcConfig, EyeMoveTypes.Saccade);
+                }
+                else 
+                {
+                    MessageBox.Show("Signal will be processed for AntiSaccades.", "Eye Move Choice");
+                    spotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.AntiSaccade, fileData.FileType);
+                    FindAndPlotSaccAntiSacc(spotBlock, SpotEyePoints, calcConfig, EyeMoveTypes.AntiSaccade);
+                }
+
+                if (spotBlock.Count > 0)
+                {
+                    GBEyeMoves.IsEnabled = true;
+                }
+                else
+                {
+                    GBEyeMoves.IsEnabled = false;
+                }
+            }
+        }
+        private void ProcessCompoundSignal(SpotGazeFileData fileData, CalcConfig calcConfig)
+        {
+            //pursuit end timestamp 9231000 / initial index 5850
+            // moruniec end 92310
+
+            int pursuitEndStaticTag;
+            int saccadeStartStaticTag;
+
+            if (fileData.FileType == FileType.Maruniec)
+            {
+                pursuitEndStaticTag = Consts.PursuitEndTimeMaruniec;
+                saccadeStartStaticTag = Consts.SaccadeStartTimeMaruniec;
+            }
+            else
+            {
+                pursuitEndStaticTag = Consts.PursuitEndTimeStandard;
+                saccadeStartStaticTag = Consts.SaccadeStartTimeStandard;
+            }
+
+            var pursuitEndTime = fileData.Time.FirstOrDefault(x => x >= pursuitEndStaticTag);
+            if (pursuitEndTime == 0)
+            {
+                pursuitEndTime = fileData.Time.LastOrDefault();
+            }
+
+            //Calibration end timestamp 10149000
+            var saccadesStartTime = fileData.Time.FirstOrDefault(x => x >= saccadeStartStaticTag);
+            if (saccadesStartTime == 0)
+            {
+                saccadesStartTime = fileData.Time.LastOrDefault();
+            }
+
+            var pursuitEndIndex = Array.IndexOf(fileData.Time, pursuitEndTime);
+            var saccadesStartIndex = Array.IndexOf(fileData.Time, saccadesStartTime); //1
+
+            var pursuitMovesBlock = InputDataHelper.CutData(fileData, 0, pursuitEndIndex - 1);
+            var saccadesMovesBlock = InputDataHelper.CutData(fileData, saccadesStartIndex, (fileData.Spot.Length) - saccadesStartIndex);
+
+            if (pursuitMovesBlock.Spot.Length > 0)
+            {
+                var pursuitWindowsFilterConfig = GetCurrentPursuitFilterConfig();
+                var pursuitCalculations = DataAnalyzer.CountCompoundSignalPursuitParameters(pursuitMovesBlock, pursuitWindowsFilterConfig);
+                if (CBPOMShowWindows.IsChecked == true)
+                {
+                    ApplyPursuitFilteredWindows(pursuitCalculations.FilteredControlWindows);
+                }
+
+                var longGain = new double?();
+                if (pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Long").Value.HasValue)
+                {
+                    longGain = pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Long").Value;
+                }
+
+                var midGain = new double?();
+                if (pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Mid").Value.HasValue)
+                {
+                    midGain = pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Mid").Value.GetValueOrDefault();
+                }
+
+                var shortGain = new double?();
+                if (pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Short").Value.HasValue)
+                {
+                    shortGain = pursuitCalculations.Gains.FirstOrDefault(x => x.Key == "Short").Value.GetValueOrDefault();
+                }
+
+                var longAccuracy = new double?();
+                if (pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Long").Value.HasValue)
+                {
+                    longAccuracy = pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Long").Value;
+                }
+
+                var midAccuracy = new double?();
+                if (pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Mid").Value.HasValue)
+                {
+                    midAccuracy = pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Mid").Value.GetValueOrDefault();
+                }
+
+                var shortAccuracy = new double?();
+                if (pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Short").Value.HasValue)
+                {
+                    shortAccuracy = pursuitCalculations.Accuracies.FirstOrDefault(x => x.Key == "Short").Value.GetValueOrDefault();
+                }
 
 
-        private void PlotSaccAntiSaccData(List<int> spotOverMeanPoints, ResultData fullData, CalcConfig calcConfig, EyeMoveTypes moveType)
+                this.PursuitMoveCalculations = new EyeMoveCalculation
+                {
+                    PursuitLongSinGain = Math.Round(longGain.GetValueOrDefault(), 2),
+                    PursuitMidSinGain = Math.Round(midGain.GetValueOrDefault(), 2),
+                    PursuitShortSinGain = Math.Round(shortGain.GetValueOrDefault(), 2),
+
+
+                    PursuitLongSinAccuracy = Math.Round(longAccuracy.GetValueOrDefault(), 2),
+                    PursuitMidSinAccuracy = Math.Round(midAccuracy.GetValueOrDefault(), 2),
+                    PursuitShortSinAccuracy = Math.Round(shortAccuracy.GetValueOrDefault(), 2)
+                };
+            }
+
+            if (saccadesMovesBlock.Spot.Length > 0)
+            {
+
+                SpotEyePoints = DataAnalyzer.FindSpotEyePointsForSaccadeAntiSaccadeSearch(saccadesMovesBlock, calcConfig);
+
+
+                var saccadeSpotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.Saccade, fileData.FileType);
+                var antiSaccadeSpotBlock = InputDataHelper.GetSpotMoveDataBlock(SpotEyePoints, EyeMoveTypes.AntiSaccade, fileData.FileType);
+
+                this.ApplySpotPointMarkers(this.SpotEyePoints);
+
+                //var fakeSacc = SpotEyePoints.SpotMoves.Select(x => x.SpotStartIndex).ToList();
+                FindAndPlotSaccAntiSacc(saccadeSpotBlock, SpotEyePoints, calcConfig, EyeMoveTypes.Saccade);
+                FindAndPlotSaccAntiSacc(antiSaccadeSpotBlock, SpotEyePoints, calcConfig, EyeMoveTypes.AntiSaccade);
+
+                if (saccadeSpotBlock.Count > 0 || antiSaccadeSpotBlock.Count > 0)
+                {
+                    GBEyeMoves.IsEnabled = true;
+                }
+                else
+                {
+                    GBEyeMoves.IsEnabled = false;
+                }
+
+            }
+        }
+
+
+        private void FindAndPlotSaccAntiSacc(List<int> spotOverMeanPoints, ResultData fullData, CalcConfig calcConfig, EyeMoveTypes moveType)
         {
             IEyeMoveFinder finder = null;
             if (moveType == EyeMoveTypes.Saccade)
@@ -423,14 +489,23 @@ namespace GazeDataViewer
             amplitudePlotter.Viewport.Visible = new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
         }
 
-        private void ApplyEyeSpotSinusoids(double[] timeDeltas, double[] eyeCoords, double[] spotCoords)
+        private void ApplyEyeSpotSinusoids(double[] timeDeltas, double[] eyeCoords, double[] spotCoords, FileType fileType)
         {
             var timeAxisDataSource = new EnumerableDataSource<double>(timeDeltas);
             timeAxisDataSource.SetXMapping(x => x);
 
             timeAxis.LabelProvider.CustomFormatter = (tickInfo) =>
             {
-                var output = (tickInfo.Tick / Consts.TimeScaleFactorStandard).ToString();
+                double scale;
+                if(fileType == FileType.JazzNovo)
+                {
+                    scale = Consts.TimeScaleFactorJazzNovo;
+                }
+                else
+                {
+                    scale = Consts.TimeScaleFactorStandard;
+                }
+                var output = (tickInfo.Tick / scale).ToString();
                 return output;
             };
 
@@ -598,7 +673,7 @@ namespace GazeDataViewer
             }
         }
 
-        public void CalculateParameters()
+        public void CalculateSaccParameters()
         {
             var calcConfig = GetCurrentCalcConfig();
             var saccCalculator = new SaccadeParamsCalcuator(SpotEyePoints.EyeCoords,
@@ -657,7 +732,7 @@ namespace GazeDataViewer
             timeLabel.FontSize = 11;
             timeLabel.Padding = new Thickness(0);
             timeLabel.Margin = new Thickness(0);
-            timeLabel.Content = $"ID: {saccade.Id}{Environment.NewLine}Time Start: {InputDataHelper.ScaleByTimeFactor(saccade.EyeStartTime, 3, true)} {Environment.NewLine}End: {InputDataHelper.ScaleByTimeFactor(saccade.EyeEndTime, 4, true)}";
+            timeLabel.Content = $"ID: {saccade.Id}{Environment.NewLine}Time Start: {InputDataHelper.ScaleByTimeFactor(saccade.EyeStartTime, 3, true, FileData.FileType)} {Environment.NewLine}End: {InputDataHelper.ScaleByTimeFactor(saccade.EyeEndTime, 4, true, FileData.FileType)}";
             
             timeLabelPanel.Children.Add(timeLabel);
 
@@ -1418,7 +1493,10 @@ namespace GazeDataViewer
 
         private void BtnSaccadeCalc_Click(object sender, RoutedEventArgs e)
         {
-            CalculateParameters();
+            if (this.SpotEyePoints != null)
+            {
+                CalculateSaccParameters();
+            }
 
             var pursuitTextResults = OutputHelper.GetPursuitTextLog(this.PursuitMoveCalculations);
             var saccadeTextResults = OutputHelper.GetSaccAntiSaccTextLog(this.SaccadeCalculations, this.SpotEyePoints, EyeMoveTypes.Saccade);
@@ -1569,7 +1647,7 @@ namespace GazeDataViewer
 
             foreach (var spotMove in this.SpotMovePositions)
             {
-                data.Add( new KeyValuePair<double, double>(spotMove.SpotStartTimeStamp, InputDataHelper.ScaleByTimeFactor(spotMove.SpotStartTimeDelta, 2, true)));
+                data.Add( new KeyValuePair<double, double>(spotMove.SpotStartTimeStamp, InputDataHelper.ScaleByTimeFactor(spotMove.SpotStartTimeDelta, 2, true, FileData.FileType)));
             }
 
             ComboAddEMSpot.SelectedValuePath = "Key";
@@ -1587,7 +1665,7 @@ namespace GazeDataViewer
         {
             if(this.SaccadeCalculations.Count == 0 && this.AntiSaccadeCalculations.Count == 0)
             {
-                CalculateParameters();
+                CalculateSaccParameters();
             }
             var defaultFileName = LoadDataPathTextBox.Text.Replace("\result_out.txt", string.Empty);
             var dlg = new SaveFileDialog();
@@ -1666,7 +1744,7 @@ namespace GazeDataViewer
                     var cutSpotCoords = this.FileData.Spot.Skip(spotGazeTrackState.CalcConfig.RecStart).Take(fileItemsCount).ToArray();
 
 
-                    this.ApplyEyeSpotSinusoids(cutTimeDeltas, cutEyeCoords, cutSpotCoords);
+                    this.ApplyEyeSpotSinusoids(cutTimeDeltas, cutEyeCoords, cutSpotCoords, this.FileData.FileType);
                     this.ApplySpotPointMarkers(this.SpotEyePoints);
                     this.ApplySaccadeControls(this.SaccadePositions, this.AntiSaccadePositions);
                     this.ReApplySaccades();

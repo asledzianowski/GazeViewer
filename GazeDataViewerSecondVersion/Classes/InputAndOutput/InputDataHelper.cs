@@ -76,15 +76,9 @@ namespace GazeDataViewer.Classes
             var lines = fileText.Split('\n');
 
             var outputData = new SpotGazeFileData();
-            outputData.Time = new int[lines.Length - 1];
-            outputData.Eye = new double[lines.Length - 1];
-            outputData.Spot = new double[lines.Length - 1];
-
-            var isFileRead = true;
-
             outputData.FileType = GetFileType(filePath);
-            
-            // test if JazzNovo
+
+            // fix for JazzNovo
             DateTime testOut;
             var isDate = DateTime.TryParse(lines[0].Split(' ')[0], out testOut);
             if (isDate)
@@ -93,7 +87,15 @@ namespace GazeDataViewer.Classes
                 outputData.FileType = FileType.JazzNovo;
             }
 
-            for (int i=0; i < lines.Length-1; i++)
+            outputData.Time = new int[lines.Length];
+            outputData.Eye = new double[lines.Length];
+            outputData.Spot = new double[lines.Length];
+
+            var isFileRead = true;
+
+
+
+            for (int i=0; i < lines.Length; i++)
             {
                 var lineColumns = lines[i].Split(' '); //;
 
@@ -101,17 +103,13 @@ namespace GazeDataViewer.Classes
                 {
                     
                     var isTimeConverted = int.TryParse(lineColumns[timeColumnIndex], out outputData.Time[i]);
-                    //var isTimeConverted = DateTime.TryParseExact(lineColumns[0], "yyyy-MM-dd HH:mm:ss.FFF",
-                      //                  CultureInfo.InvariantCulture, DateTimeStyles.None, out outputData.Time[i]);
-
-                    //double lEye;
+                  
                     double rEye;
                     double spot;
-                    //var isLEyeConverted = double.TryParse(lineColumns[1], NumberStyles.Any, CultureInfo.InvariantCulture, out lEye);
                     var isREyeConverted = double.TryParse(lineColumns[eyeColumnIndex], NumberStyles.Any, CultureInfo.InvariantCulture, out rEye); //3
                     var isSopotConverted = double.TryParse(lineColumns[spotColumnIndex].Replace(@"\r", string.Empty), NumberStyles.Any, CultureInfo.InvariantCulture, out spot); //5
 
-                    if (!isTimeConverted || /*!isLEyeConverted ||*/ !isREyeConverted || !isSopotConverted)
+                    if (!isTimeConverted || !isREyeConverted || !isSopotConverted)
                     {
                         MessageBox.Show("Invalid format in input file at line " + i);
                         isFileRead = false;
@@ -119,7 +117,6 @@ namespace GazeDataViewer.Classes
                     }
                     else
                     {
-                        //outputData.LEye[i] = Math.Round(lEye, 3);
                         outputData.Eye[i] = Math.Round(rEye, 3);
                         outputData.Spot[i] = Math.Round(spot, 3);
 
@@ -154,20 +151,28 @@ namespace GazeDataViewer.Classes
             var firstLine = lines[0].Split(';');
             var firstTime = DateTime.Parse(firstLine[0]).TimeOfDay;
 
-            for (int i = 1; i < lines.Length; i++)
+            var freqCounter = 0;
+            for (int i = 0; i < lines.Length; i++)
             {
-                var currentLine = lines[i].Split(';');
-                if (currentLine.Length > 1)
+                if (i == freqCounter)
                 {
-                    var currentTime = DateTime.Parse(currentLine[0]).TimeOfDay;
+                    var currentLine = lines[i].Split(';');
+                    if (currentLine.Length > 1)
+                    {
+                        var currentTime = DateTime.Parse(currentLine[0]).TimeOfDay;
 
-                    var span = currentTime.Subtract(firstTime);
-                    currentLine[0] = span.Milliseconds.ToString();
-                    var lineString = string.Join(";", currentLine);
-                    lineString = lineString.Replace(';', ' ');
-                    output.Add(lineString);
+                        var span = currentTime.Subtract(firstTime);
+                        currentLine[0] = span.TotalMilliseconds.ToString();
+                        var lineString = string.Join(";", currentLine);
+                        lineString = lineString.Replace(';', ' ');
+                        output.Add(lineString);
+                    }
+
+                    freqCounter = freqCounter + 17;
                 }
+
             }
+            
 
             return output.ToArray();
         }
@@ -179,11 +184,15 @@ namespace GazeDataViewer.Classes
           
             if (fileType == FileType.Maruniec)
             {
-                xScale = Consts.GraphXScaleFactorMaruniec;
+                xScale = Consts.DeltaScaleFactorMaruniec;
+            }
+            else if (fileType == FileType.JazzNovo)
+            {
+                xScale = 1D;
             }
             else
             {
-                xScale = Consts.GraphXScaleFactorStandard;
+                xScale = Consts.DeltaScaleFactorStandard;
             }
 
             var unifiedDeltas = GetDeltaTimespansDouble(timeStamps, xScale);
@@ -197,11 +206,11 @@ namespace GazeDataViewer.Classes
 
             if (fileType == FileType.Maruniec)
             {
-                xScale = Convert.ToInt32(Consts.GraphXScaleFactorMaruniec);
+                xScale = Convert.ToInt32(Consts.DeltaScaleFactorMaruniec);
             }
             else
             {
-                xScale = Convert.ToInt32(Consts.GraphXScaleFactorStandard);
+                xScale = Convert.ToInt32(Consts.DeltaScaleFactorStandard);
             }
 
             var unifiedTimestamps = new List<int>();
@@ -220,6 +229,10 @@ namespace GazeDataViewer.Classes
 
             for (int i = 0; i < timestamps.Length; i++)
             {
+                if(i == 998)
+                {
+
+                }
                 double timeSpanD = 0;
                 var timeSpan = timestamps[i] - startTime;
                 if(timeSpan !=0)
@@ -235,16 +248,27 @@ namespace GazeDataViewer.Classes
         }
 
 
-        public static double ScaleByTimeFactor(double time, int roundBy, bool scaleDown)
+        public static double ScaleByTimeFactor(double time, int roundBy, bool scaleDown, FileType fileType)
         {
             double output;
-            if (scaleDown)
+
+            double scaleFactor;
+            if (fileType == FileType.JazzNovo)
             {
-                output = Math.Round(time / Consts.TimeScaleFactorStandard, roundBy);
+                scaleFactor = Consts.TimeScaleFactorJazzNovo;
             }
             else
             {
-                output = Math.Round(time * Consts.TimeScaleFactorStandard, roundBy);
+                scaleFactor = Consts.TimeScaleFactorStandard;
+            }
+
+            if (scaleDown)
+            {
+                output = time / scaleFactor;
+            }
+            else
+            {
+                output = time * scaleFactor;
             }
             return output;
         }
@@ -254,7 +278,7 @@ namespace GazeDataViewer.Classes
             if (index < resultData.TimeDeltas.Count())
             {
                 var delta = resultData.TimeDeltas[index];
-                var scaledDelta = ScaleByTimeFactor(delta, 2, true);
+                var scaledDelta = ScaleByTimeFactor(delta, 2, true, resultData.FileType);
                 return scaledDelta;
             }
             else
@@ -265,7 +289,7 @@ namespace GazeDataViewer.Classes
 
         public static int? GetIndexFromScaledTime(SpotGazeFileData resultData, double delta)
         {
-            var scaledDelta = ScaleByTimeFactor(delta, 2, false);
+            var scaledDelta = ScaleByTimeFactor(delta, 2, false, resultData.FileType);
             try
             {
                 var indexItem = resultData.TimeDeltas.Where(x => x >= scaledDelta).OrderBy(x => x).FirstOrDefault();
@@ -321,6 +345,11 @@ namespace GazeDataViewer.Classes
                 {
                     initStartTime = Consts.SaccadeStartTimeMaruniec;
                     initEndTime = Consts.AntiSaccadeStartTimeMaruniec;
+                }
+                else if (fileType == FileType.JazzNovo)
+                {
+                    initStartTime = 2006;
+                    initEndTime = 57001;
                 }
                 //initStartTime = 10676000; //9946000;
                 //initEndTime = 15095000;

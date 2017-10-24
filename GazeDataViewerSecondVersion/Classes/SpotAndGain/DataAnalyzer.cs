@@ -16,8 +16,132 @@ namespace GazeDataViewer.Classes.SpotAndGain
     public class DataAnalyzer
     {
 
+        public static PursuitGainCalculations CountSingleTypeSignalPursuitParameters(SpotGazeFileData fileData, FiltersConfig filterConfig)
+        {
+            var sinLenght = 50D;
 
-        public static PursuitGainCalculations CountPursuitParameters(SpotGazeFileData fileData, FiltersConfig filterConfig)
+            var mincal = fileData.Spot.Min();
+            var maxcal = fileData.Spot.Max();
+            var amp = (maxcal - mincal) / 2;
+            var srod = (maxcal + mincal) / 2;
+
+            var start = fileData.Eye.FirstOrDefault(x => x == srod);
+
+            var minIndex = fileData.Spot.ToList().IndexOf(mincal);
+            var maxIndex = fileData.Spot.ToList().IndexOf(maxcal);
+
+            var kspIndexes = new List<int>();
+            var accuracyKspDiffValues = new List<double>();
+            var accuracyKspSpotValues = new List<double>();
+
+            for (int i = 0; i < fileData.Spot.Length; i++)
+            {
+                var xSpot = fileData.Spot[i];
+
+                if (Math.Abs(xSpot - srod) > amp * 0.995D)
+                {
+                    kspIndexes.Add(i);
+
+                    //Accuracy
+                    var xEye = fileData.Eye[i];
+                    var diffVal = Math.Abs(xEye - xSpot);
+                    accuracyKspDiffValues.Add(diffVal);
+                    accuracyKspSpotValues.Add(Math.Abs(xSpot));
+                }
+            }
+
+            var kspEyeValues = new List<double>();
+            var kspSpotValues = new List<double>();
+
+            var results = new List<double>();
+           
+            var filteredControlWindows = new List<Dictionary<double, double>>();
+            var kspDiffValues = new List<Dictionary<double, double>>();
+
+            //fix first sin
+            var kspStartIndex = 0;
+            for(int i = 0; i < kspIndexes.Count - 1; i++)
+            {
+                var result = kspIndexes[i + 1] - kspIndexes[i];
+                if(result > 30)
+                {
+                    kspStartIndex = i;
+                    break;
+                }  
+            }
+
+            //fix last sin
+            var kspEndIndex = kspIndexes.Count;
+            for (int y = kspIndexes.Count; y-- > 1;)
+            {
+                var endRsult =  kspIndexes[y] - kspIndexes[y - 1];
+                if (endRsult > 20)
+                {
+                    kspEndIndex = y;
+                    break;
+                }
+            }
+
+            kspIndexes = kspIndexes.Skip(kspStartIndex + 1).Take(kspEndIndex - kspStartIndex - 1).ToList();
+
+            for (int j = 0; j < kspIndexes.Count; j++)
+            {
+                var index = kspIndexes[j];
+
+                var controlWindow = new List<double>();
+                var controlTimeDeltas = new List<double>();
+                var controlWindowLength = Convert.ToInt32(Math.Round(sinLenght / 5, 0));
+
+                if (j > 0)
+                {
+                    controlWindow = fileData.Eye.Skip(index - (controlWindowLength / 2)).Take(controlWindowLength).ToList();
+                    controlTimeDeltas = fileData.TimeDeltas.Skip(index - (controlWindowLength / 2)).Take(controlWindowLength).ToList();
+                }
+                else
+                {
+                    controlWindow = fileData.Eye.Skip(index).Take(controlWindowLength).ToList();
+                    controlTimeDeltas = fileData.TimeDeltas.Skip(index).Take(controlWindowLength).ToList();
+                }
+
+                if (filterConfig.FilterByButterworth)
+                {
+                    controlWindow = FilterController.FilterByButterworth(filterConfig, controlWindow.ToArray()).ToList();
+                }
+
+                var filteredWindowItems = new Dictionary<double, double>();
+                for (int g = 0; g < controlWindow.Count(); g++)
+                {
+                    filteredWindowItems.Add(controlTimeDeltas[g], controlWindow[g]);
+                }
+                filteredControlWindows.Add(filteredWindowItems);
+
+                double eyeValue = controlWindow.Average(); 
+                  
+                var spotValue = fileData.Spot[index];
+                var result = eyeValue / spotValue;
+                results.Add(result);
+            }
+
+            var gainCalculations = new Dictionary<string, double?>();
+            var longSinGain = results.Average();
+            gainCalculations.Add("Long", longSinGain);
+            
+            var longSinW1 = accuracyKspDiffValues.Sum();
+            var longSinW2 = accuracyKspSpotValues.Sum();
+            var longSinAcc = 1D - (longSinW1 / longSinW2);
+            
+            var accuracyCalculations = new Dictionary<string, double?>();
+            accuracyCalculations.Add("Long", longSinAcc);
+
+            return new PursuitGainCalculations
+            {
+                Gains = gainCalculations,
+                Accuracies = accuracyCalculations,
+                FilteredControlWindows = filteredControlWindows
+            };
+        }
+
+        public static PursuitGainCalculations CountCompoundSignalPursuitParameters(SpotGazeFileData fileData, FiltersConfig filterConfig)
         {
             var mncal = fileData.Spot.Min();
             var mxcal = fileData.Spot.Max();
@@ -88,21 +212,7 @@ namespace GazeDataViewer.Classes.SpotAndGain
                 }
             }
 
-            //int newStartIndex = kspIndexes[0].Value;
-            //int newEndIndex;
-            //var longSin = kspIndexes.Where(x => x.Key == 240);
-            //for(int h = 0; h < longSin.Count(); h++)
-            //{
-            //    var currIndx = kspIndexes[h].Value;
-            //    var nextIndx = kspIndexes[h + 1].Value;
-            //    if ((nextIndx - currIndx) > 2)
-            //    {
-            //        newStartIndex = h;
-            //        break;
-            //    }
-            //}
-
-            //kspIndexes = kspIndexes.Skip(newStartIndex).ToList();
+           
             var kspEyeValues= new List<double>();
             var kspSpotValues = new List<double>();
             
