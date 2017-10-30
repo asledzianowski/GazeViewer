@@ -439,6 +439,14 @@ namespace GazeDataViewer.Classes.DataAndLog
             MessageBox.Show($"File Saved at {filePath}");
         }
 
+
+        public static void GetPOMSummary(SpotGazeFileData fileData, FiltersConfig pursuitWindowsFilterConfig)
+        {
+            var pursuitCalculations = DataAnalyzer.CountSingleTypeSignalPursuitParameters(fileData, pursuitWindowsFilterConfig);
+            var sinGain = pursuitCalculations.Gains.FirstOrDefault().Value;
+            var sinAccuracy = pursuitCalculations.Accuracies.FirstOrDefault().Value;
+        }
+
         public static void GetSummaryForDirectory(string foldersPath, int timeColumnIndex, int eyeColumnIndex, int spotColumnIndex,
             CalcConfig calcConfig, FiltersConfig filtersConfig)
         {

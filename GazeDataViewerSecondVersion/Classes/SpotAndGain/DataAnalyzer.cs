@@ -18,17 +18,14 @@ namespace GazeDataViewer.Classes.SpotAndGain
 
         public static PursuitGainCalculations CountSingleTypeSignalPursuitParameters(SpotGazeFileData fileData, FiltersConfig filterConfig)
         {
-            var sinLenght = 50D;
-
             var mincal = fileData.Spot.Min();
             var maxcal = fileData.Spot.Max();
             var amp = (maxcal - mincal) / 2;
             var srod = (maxcal + mincal) / 2;
-
-            var start = fileData.Eye.FirstOrDefault(x => x == srod);
-
-            var minIndex = fileData.Spot.ToList().IndexOf(mincal);
+            
             var maxIndex = fileData.Spot.ToList().IndexOf(maxcal);
+            var minIndex = fileData.Spot.ToList().IndexOf(mincal);
+            var sinLenght = Convert.ToDouble(Math.Abs(maxIndex - minIndex));
 
             var kspIndexes = new List<int>();
             var accuracyKspDiffValues = new List<double>();

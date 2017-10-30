@@ -88,6 +88,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Classes\Additionals\ACIIDSHelper.cs" />
     <Compile Include="Classes\EnumsAndConsts\Consts.cs" />
     <Compile Include="Classes\EnumsAndConsts\FileTypes.cs" />
     <Compile Include="Classes\EyeMoveSearch\AntiSaccadeSearch\AntiSaccadeFinder.cs" />

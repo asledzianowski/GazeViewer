@@ -32,6 +32,7 @@ using GazeDataViewer.Classes.Enums;
 using GazeDataViewer.Classes.DataAndLog;
 using GazeDataViewer.Classes.EyeMoveSearch;
 using GazeDataViewer.Classes.EnumsAndStats;
+using GazeDataViewer.Classes.Additionals;
 
 namespace GazeDataViewer
 {
@@ -40,7 +41,6 @@ namespace GazeDataViewer
     /// </summary>
     public partial class MainWindow : Window
     {
-        
         SpotGazeFileData FileData { get; set; }
         ResultData SpotEyePoints { get; set; }
         List<EyeMove> SaccadePositions { get; set; } = new List<EyeMove>();
@@ -50,10 +50,130 @@ namespace GazeDataViewer
         List<EyeMoveCalculation> AntiSaccadeCalculations { get; set; } = new List<EyeMoveCalculation>();
         EyeMoveCalculation PursuitMoveCalculations { get; set; } = new EyeMoveCalculation();
 
-
         public MainWindow()
         {
             InitializeComponent();
+            //ACIIDSHelper.CopyFiles();
+            BulkCalcJazzNovoPom();
+        }
+
+        private void BulkCalcJazzNovoPom()
+        {
+            var timeColumnIndex = int.Parse(TBTimestampColumnIndex.Text);
+            var eyeColumnIndex = int.Parse(TBEyeColumnIndex.Text);
+            var spotColumnIndex = int.Parse(TBSpotColumnIndex.Text);
+            var pursuitWindowsFilterConfig = GetCurrentPursuitFilterConfig();
+
+            var targetPath = @"D:\Data Scientific\ACIIDS\Output\";
+
+            var fileInfo = new FileInfo(@"D:\Data Scientific\ACIIDS\BD_2017-10-25.csv");
+            var fileStream = fileInfo.OpenRead();
+            var fileDataStream = new StreamReader(fileStream);
+            var fileText = fileDataStream.ReadToEnd();
+            var neuroDataLines = fileText.Split('\n');
+            var headers = neuroDataLines[0].Split(';');
+            var headersVals = neuroDataLines[1].Split(';');
+
+            var sessionTypes = new string[] { "POP", "DBS" };
+            var moveTypes = new string[] { "125", "250", "500" };
+
+            foreach (var sessionType in sessionTypes)
+            {
+                foreach (var moveType in moveTypes)
+                {
+                    //var sessionType = "POP";
+                    //var moveType = "POM125";
+                var directoryPath = @"D:\Data Scientific\ACIIDS\Sources\" + sessionType + @"\POM" + moveType + @"Sources\";
+                var files = Directory.GetFiles(directoryPath).ToList();
+                var csvFiles = files.Where(x => x.EndsWith(".csv"));
+
+                var sb = new StringBuilder();
+                sb.Append("@relation " + moveType + sessionType + Environment.NewLine);
+                sb.Append("@attribute PatID numeric" + Environment.NewLine);
+                sb.Append("@attribute CzasChoroby numeric" + Environment.NewLine);
+                //sb.Append("@attribute Year numeric" + Environment.NewLine);
+                //sb.Append("@attribute VisitID numeric" + Environment.NewLine);
+                sb.Append($"@attribute {sessionType}-{moveType}-Gain numeric" + Environment.NewLine);
+                sb.Append($"@attribute {sessionType}-{moveType}-Accuracy numeric" + Environment.NewLine);
+                sb.Append("@attribute UPDRSIII numeric" + Environment.NewLine);
+                sb.Append("@attribute DBS {0,1}" + Environment.NewLine);
+                sb.Append("@attribute BMT {0,1}" + Environment.NewLine + Environment.NewLine);
+                sb.Append("@data" + Environment.NewLine);
+
+                    foreach (var eyeFilePath in csvFiles)
+                    {
+                        var fileNameParams = Path.GetFileName(eyeFilePath).Substring(0, 21).Split('-');
+
+                        var dbs = fileNameParams[0];
+                        var bmt = fileNameParams[1];
+                        var patId = fileNameParams[2];
+                        var year = fileNameParams[5];
+                        var visit = fileNameParams[6];
+
+                        var testTrue = Convert.ToInt32(bool.Parse("False"));
+                        var testFalse = Convert.ToInt32(bool.Parse("True"));
+
+                        for (int i = 1; i < neuroDataLines.Length; i++)
+                        {
+                            var neuroDataLine = neuroDataLines[i];
+                            if (neuroDataLine != string.Empty)
+                            {
+                                var neuroItems = neuroDataLine.Split(';');
+                                var neuroSessionID = neuroItems[0].Split('/');
+
+                                var neuroPatId = neuroSessionID[0];
+                                var neuroSessionType = neuroSessionID[2];
+                                var neuroSessionYear = neuroSessionID[3];
+
+                                if (patId.Equals(neuroPatId) && sessionType.Equals(neuroSessionType) && year.Equals(neuroSessionYear))
+                                {
+                                    var neuroDBS = neuroItems[129];
+                                    var neuroBMT = neuroItems[130];
+                                    var neuroVisit = neuroItems[7];
+                                    if (neuroBMT != string.Empty)
+                                    {
+                                        neuroBMT = Convert.ToInt32(bool.Parse(neuroBMT)).ToString();
+                                    }
+
+
+                                    if (dbs == neuroDBS && bmt == neuroBMT && visit == neuroVisit)
+                                    {
+                                        var updrsIII = neuroItems[160];
+                                        var czasChoroby = neuroItems[15];
+
+
+                                        var fileData = InputDataHelper.LoadDataForSpotAndGaze(eyeFilePath, timeColumnIndex, eyeColumnIndex, spotColumnIndex);
+                                        var pursuitCalculations = DataAnalyzer.CountSingleTypeSignalPursuitParameters(fileData, pursuitWindowsFilterConfig);
+
+                                        var sinGain = Math.Round(pursuitCalculations.Gains.FirstOrDefault().Value.GetValueOrDefault(), 2);
+                                        var sinAccuracy = Math.Round(pursuitCalculations.Accuracies.FirstOrDefault().Value.GetValueOrDefault(), 2);
+
+                                        //sb.Append(sessionType + " ");
+                                        sb.Append(patId + " ");
+                                        sb.Append(czasChoroby.Replace(',', '.') + " ");
+                                        //sb.Append(year + " ");
+                                        //sb.Append(visit + " ");
+                                        sb.Append(sinGain + " ");
+                                        sb.Append(sinAccuracy + " ");
+                                        sb.Append(updrsIII + " ");
+                                        sb.Append(dbs + " ");
+                                        sb.Append(bmt);
+                                        sb.Append(Environment.NewLine);
+                                    }
+
+                                }
+
+                            }
+                        }
+                    }
+
+                    File.WriteAllText(targetPath + sessionType + moveType + "out.arff", sb.ToString());
+                }
+            }
+
+            //var targetPath = @"D:\Data Scientific\ACIIDS\Output\";
+            //File.WriteAllText(targetPath + moveType + "out.arff", sb.ToString());
+            //File.WriteAllText(directoryPath + moveType + "outForJoin.arff", sb.ToString());
         }
 
         private void LoadDataButton_Click(object sender, RoutedEventArgs e)
@@ -164,6 +284,7 @@ namespace GazeDataViewer
         //        calcConfig, filterConfig);
         //}
 
+
         private void Analyze(SpotGazeFileData fileData, CalcConfig calcConfig)
         {
             var filterConfig = GetCurrentFilterConfig();
@@ -250,7 +371,6 @@ namespace GazeDataViewer
                 {
                     PursuitLongSinGain = pursuitCalculations.Gains.FirstOrDefault().Value,
                     PursuitLongSinAccuracy = pursuitCalculations.Accuracies.FirstOrDefault().Value
-
                 };
 
             }
@@ -284,6 +404,9 @@ namespace GazeDataViewer
                 }
             }
         }
+
+
+
         private void ProcessCompoundSignal(SpotGazeFileData fileData, CalcConfig calcConfig)
         {
             //pursuit end timestamp 9231000 / initial index 5850
